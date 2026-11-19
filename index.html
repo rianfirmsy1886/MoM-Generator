@@ -4,17 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Catatan MoM</title>
-  <meta name="description" content="Aplikasi sederhana untuk mencatat Minutes of Meeting, merekam percakapan, dan export ke Word / Notepad.">
+  <meta name="description" content="Rekam meeting, dapatkan transkrip dan MoM otomatis, export ke Word, PDF, Notepad, atau clipboard.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>">
   <style>
-/* ================= TEMA ================= */
 :root {
-  --bg: #f5f6f8;
+  --bg: #f4f5f8;
   --surface: #ffffff;
-  --surface-2: #f0f2f5;
+  --surface-2: #f0f2f6;
   --text: #1c2330;
   --muted: #667085;
-  --border: #dde1e7;
+  --border: #dde1e8;
   --primary: #2457d6;
   --primary-text: #ffffff;
   --primary-soft: #e6edfc;
@@ -25,17 +24,16 @@
   --warn-text: #7a5300;
   --info-bg: #e6f0ff;
   --info-text: #1d3f8a;
-  --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 3px rgba(16, 24, 40, .08);
-  --radius: 10px;
+  --shadow: 0 1px 2px rgba(16, 24, 40, .05), 0 1px 3px rgba(16, 24, 40, .07);
+  --radius: 12px;
   --font: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
   --mono: ui-monospace, "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace;
   color-scheme: light;
 }
-
 [data-theme="dark"] {
   --bg: #12151b;
   --surface: #1a1f27;
-  --surface-2: #222833;
+  --surface-2: #232a35;
   --text: #e6e9ef;
   --muted: #98a2b3;
   --border: #2f3744;
@@ -54,9 +52,7 @@
 }
 
 * { box-sizing: border-box; }
-
 html, body { margin: 0; }
-
 body {
   font-family: var(--font);
   font-size: 15px;
@@ -68,208 +64,134 @@ body {
   flex-direction: column;
 }
 
-h2 { font-size: 1rem; margin: 0 0 .75rem; font-weight: 600; }
-h3 { font-size: .95rem; margin: 1.1rem 0 .4rem; }
-
-/* ================= TOPBAR ================= */
+/* ---------- Topbar ---------- */
 .topbar {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: .6rem 1.25rem;
+  position: sticky; top: 0; z-index: 10;
+  display: flex; align-items: center; justify-content: space-between; gap: .75rem;
+  padding: .55rem 1.25rem;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
 }
 .brand { display: flex; align-items: center; gap: .5rem; font-weight: 700; font-size: 1.05rem; }
 .logo { font-size: 1.3rem; }
-.top-actions { display: flex; gap: .25rem; flex-wrap: wrap; }
+.top-actions { display: flex; gap: .15rem; }
 
-/* ================= BANNER ================= */
 .banner {
-  margin: 1rem 1.25rem 0;
+  max-width: 880px; width: calc(100% - 2rem);
+  margin: 1rem auto 0;
   padding: .7rem 1rem;
-  border-radius: var(--radius);
+  border-radius: 10px;
   font-size: .9rem;
-  display: flex;
-  gap: .75rem;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
+  display: flex; gap: .75rem; align-items: center; justify-content: space-between; flex-wrap: wrap;
 }
 .banner[hidden] { display: none; }
 .banner.warn { background: var(--warn-bg); color: var(--warn-text); }
 .banner.info { background: var(--info-bg); color: var(--info-text); }
 .banner-actions { display: flex; gap: .4rem; }
 
-/* ================= LAYOUT ================= */
-.layout {
+/* ---------- Layout ---------- */
+.wrap {
   flex: 1;
   width: 100%;
-  max-width: 1320px;
+  max-width: 880px;
   margin: 0 auto;
-  padding: 1rem 1.25rem 1.5rem;
-  display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
-  gap: 1rem;
-  align-items: start;
+  padding: 1rem 1rem 1.5rem;
+  display: flex; flex-direction: column; gap: 1rem;
 }
-.col { display: flex; flex-direction: column; gap: 1rem; }
-
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 1rem 1.1rem;
+  padding: 1.1rem 1.2rem;
   box-shadow: var(--shadow);
 }
-.card-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .75rem; }
-.card-head h2 { margin: 0; }
 
-/* ================= FORM ================= */
+/* ---------- Form ---------- */
+.meeting-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: .8rem; }
 .field { display: flex; flex-direction: column; gap: .3rem; margin-bottom: .8rem; }
-.field > span { font-size: .82rem; font-weight: 600; color: var(--muted); }
-.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+.card > .field:last-child { margin-bottom: 0; }
+.field > span { font-size: .8rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
 
-input[type="text"], input[type="search"], input[type="date"], input[type="datetime-local"],
-select, textarea {
+input[type="text"], input[type="search"], input[type="password"], input[type="datetime-local"], select, textarea {
   width: 100%;
   font: inherit;
   color: var(--text);
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: .5rem .65rem;
+  padding: .55rem .7rem;
   transition: border-color .15s, box-shadow .15s;
 }
-textarea { resize: vertical; min-height: 4rem; }
-input:focus, select:focus, textarea:focus {
-  outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px var(--primary-soft);
-}
-#transcript { font-family: var(--mono); font-size: .85rem; line-height: 1.55; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
 
-/* Tag peserta */
 .tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: .35rem;
-  align-items: center;
+  display: flex; flex-wrap: wrap; gap: .35rem; align-items: center;
   padding: .35rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  border: 1px solid var(--border); border-radius: 8px;
   background: var(--surface);
-  min-height: 2.6rem;
+  min-height: 2.75rem;
+  cursor: text;
 }
 .tags:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
-.tags input { flex: 1; min-width: 10rem; border: none; padding: .25rem .35rem; box-shadow: none !important; }
+.tags input { flex: 1; min-width: 9rem; border: none !important; padding: .25rem .35rem; box-shadow: none !important; }
 .tag {
-  display: inline-flex;
-  align-items: center;
-  gap: .25rem;
-  background: var(--primary-soft);
-  color: var(--text);
+  display: inline-flex; align-items: center; gap: .2rem;
+  background: var(--primary-soft); color: var(--text);
   border-radius: 999px;
-  padding: .15rem .3rem .15rem .65rem;
-  font-size: .85rem;
+  padding: .15rem .3rem .15rem .7rem;
+  font-size: .87rem;
 }
-.tag button {
-  border: none;
-  background: transparent;
-  color: var(--muted);
-  cursor: pointer;
-  font-size: 1rem;
-  line-height: 1;
-  padding: 0 .25rem;
-  border-radius: 50%;
-}
+.tag button { border: none; background: transparent; color: var(--muted); cursor: pointer; font-size: 1rem; line-height: 1; padding: 0 .3rem; }
 .tag button:hover { color: var(--danger); }
 
-/* List keputusan */
-.list { margin: 0; padding-left: 1.4rem; display: flex; flex-direction: column; gap: .4rem; }
-.list li { padding-left: .2rem; }
-.list li.row { display: list-item; }
-.list .row-inner { display: flex; gap: .4rem; align-items: center; }
-.list li.empty, .empty-cell { color: var(--muted); font-size: .88rem; list-style: none; margin-left: -1.4rem; }
-
-/* Tabel action items */
-.table-wrap { overflow-x: auto; }
-.actions-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
-.actions-table th {
-  text-align: left;
-  font-size: .78rem;
-  font-weight: 600;
-  color: var(--muted);
-  padding: 0 .3rem .35rem;
-  border-bottom: 1px solid var(--border);
-}
-.actions-table td { padding: .3rem; vertical-align: top; }
-.actions-table td:nth-child(1) { width: 35%; }
-.actions-table td:nth-child(2) { width: 19%; }
-.actions-table td:nth-child(3) { width: 21%; }
-.actions-table td:nth-child(4) { width: 20%; }
-.actions-table td:nth-child(5) { width: 5%; }
-.actions-table input, .actions-table select { padding: .4rem .5rem; font-size: .88rem; }
-.empty-cell { margin: 0; padding: .6rem .3rem !important; }
-
-/* ================= TOMBOL ================= */
+/* ---------- Buttons ---------- */
 .btn {
-  font: inherit;
-  font-size: .9rem;
-  font-weight: 500;
+  font: inherit; font-size: .9rem; font-weight: 500;
   border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text);
+  background: var(--surface); color: var(--text);
   border-radius: 8px;
-  padding: .45rem .85rem;
-  cursor: pointer;
-  white-space: nowrap;
+  padding: .45rem .9rem;
+  cursor: pointer; white-space: nowrap;
   transition: background .15s, border-color .15s, opacity .15s;
 }
 .btn:hover:not(:disabled) { background: var(--surface-2); }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
 .btn.primary { background: var(--primary); border-color: var(--primary); color: var(--primary-text); }
 .btn.primary:hover:not(:disabled) { filter: brightness(1.08); background: var(--primary); }
-.btn.danger { color: var(--danger); border-color: var(--danger); }
-.btn.danger:hover:not(:disabled) { background: var(--danger-soft); }
 .btn.ghost { border-color: transparent; background: transparent; }
 .btn.ghost:hover:not(:disabled) { background: var(--surface-2); }
 .btn.small { font-size: .82rem; padding: .3rem .65rem; }
-.btn.icon { padding: .35rem .6rem; }
-.btn-del {
+.link {
+  font: inherit; font-size: .85rem;
+  background: none; border: none; padding: .2rem 0;
+  color: var(--primary); cursor: pointer;
+}
+.link:disabled { color: var(--muted); opacity: .6; cursor: not-allowed; }
+
+/* ---------- Recorder ---------- */
+.rec-main { display: flex; align-items: center; gap: 1rem; }
+.rec-btn {
   flex: none;
+  display: inline-flex; align-items: center; gap: .6rem;
+  font: inherit; font-size: 1.05rem; font-weight: 600;
+  padding: .85rem 1.6rem;
+  border-radius: 999px;
   border: none;
-  background: transparent;
-  color: var(--muted);
-  font-size: 1.15rem;
-  line-height: 1;
+  background: var(--primary); color: var(--primary-text);
   cursor: pointer;
-  padding: .35rem .45rem;
-  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(36, 87, 214, .3);
+  transition: filter .15s, transform .1s;
 }
-.btn-del:hover { color: var(--danger); background: var(--danger-soft); }
+.rec-btn:hover { filter: brightness(1.08); }
+.rec-btn:active { transform: scale(.98); }
+.rec-btn:disabled { opacity: .6; cursor: wait; }
+.rec-icon { width: 14px; height: 14px; border-radius: 50%; background: currentColor; }
+.rec-btn.recording { background: var(--danger); color: #fff; box-shadow: 0 2px 8px rgba(210, 59, 59, .35); }
+.rec-btn.recording .rec-icon { border-radius: 3px; }
 
-.btn-row { display: flex; gap: .5rem; margin-top: .75rem; }
-.btn-row.wrap { flex-wrap: wrap; }
-.btn-row .btn { flex: 1; }
-.btn-row.wrap .btn { flex: 0 1 auto; }
-
-.export-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
-
-/* ================= REKAMAN ================= */
-.rec-status {
-  display: flex;
-  align-items: center;
-  gap: .75rem;
-  padding: .7rem .8rem;
-  background: var(--surface-2);
-  border-radius: 8px;
-}
-.dot { width: 12px; height: 12px; border-radius: 50%; background: var(--muted); opacity: .5; flex: none; }
+.rec-meta { flex: 1; min-width: 0; }
+.rec-line { display: flex; align-items: center; gap: .6rem; }
+.dot { width: 11px; height: 11px; border-radius: 50%; background: var(--muted); opacity: .4; flex: none; }
 .dot.recording { background: var(--danger); opacity: 1; animation: pulse 1.2s infinite; }
 .dot.paused { background: #e3a008; opacity: 1; }
 @keyframes pulse {
@@ -277,145 +199,172 @@ input:focus, select:focus, textarea:focus {
   70% { box-shadow: 0 0 0 8px rgba(210, 59, 59, 0); }
   100% { box-shadow: 0 0 0 0 rgba(210, 59, 59, 0); }
 }
-.timer { font-family: var(--mono); font-size: 1.35rem; font-weight: 600; letter-spacing: .02em; }
-#levelMeter { margin-left: auto; border-radius: 4px; background: var(--surface); }
-#recPlayer { width: 100%; margin-top: .5rem; }
+.timer { font-family: var(--mono); font-size: 1.5rem; font-weight: 600; }
+#levelMeter { border-radius: 3px; }
 
-.hint { font-size: .82rem; color: var(--muted); margin: .4rem 0 0; }
-.hint:empty { display: none; }
+.rec-options { display: flex; gap: .75rem; margin-top: 1rem; padding-top: .85rem; border-top: 1px dashed var(--border); }
+.mini { flex: 1; display: flex; flex-direction: column; gap: .2rem; }
+.mini span { font-size: .75rem; color: var(--muted); font-weight: 600; }
+.mini select { padding: .4rem .55rem; font-size: .88rem; }
+
+.hint { font-size: .83rem; color: var(--muted); margin: .25rem 0 0; }
 .hint.error { color: var(--danger); }
 .hint.ok { color: var(--ok); }
 .muted { color: var(--muted); }
 
-/* ================= TRANSKRIP ================= */
-.interim { min-height: 1.3rem; font-size: .85rem; color: var(--muted); font-style: italic; margin-top: .35rem; }
-.tips { margin-top: .75rem; font-size: .85rem; }
-.tips summary { cursor: pointer; color: var(--primary); font-weight: 500; }
-.tips ul { padding-left: 1.2rem; margin: .5rem 0 0; color: var(--muted); }
-.tips li { margin-bottom: .3rem; }
-
-/* Switch */
-.switch { display: inline-flex; align-items: center; gap: .45rem; cursor: pointer; font-size: .85rem; user-select: none; }
-.switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
-.slider { width: 36px; height: 20px; background: var(--border); border-radius: 999px; position: relative; transition: background .2s; }
-.slider::after {
-  content: "";
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: #fff;
-  transition: transform .2s;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, .25);
+/* ---------- Result ---------- */
+.result-head { display: flex; justify-content: space-between; align-items: center; gap: .5rem; flex-wrap: wrap; margin-bottom: .75rem; }
+.tabs { display: inline-flex; background: var(--surface-2); padding: 3px; border-radius: 9px; }
+.tab {
+  font: inherit; font-size: .9rem; font-weight: 600;
+  border: none; background: transparent; color: var(--muted);
+  padding: .35rem 1rem; border-radius: 7px; cursor: pointer;
 }
-.switch input:checked + .slider { background: var(--ok); }
-.switch input:checked + .slider::after { transform: translateX(16px); }
-.switch input:focus-visible + .slider { box-shadow: 0 0 0 3px var(--primary-soft); }
+.tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(0, 0, 0, .12); }
+.result-tools { display: flex; gap: .4rem; }
 
-/* ================= FOOTER ================= */
+.status-line {
+  font-size: .85rem;
+  padding: .5rem .75rem;
+  border-radius: 8px;
+  background: var(--info-bg); color: var(--info-text);
+  margin-bottom: .75rem;
+  display: flex; align-items: center; gap: .5rem;
+}
+.status-line[hidden] { display: none; }
+.status-line.warn { background: var(--warn-bg); color: var(--warn-text); }
+.spinner {
+  width: 14px; height: 14px; flex: none;
+  border: 2px solid currentColor; border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.panel { min-height: 260px; }
+.mom-view {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem 1.2rem;
+  min-height: 260px;
+  max-height: 65vh;
+  overflow: auto;
+  background: var(--surface);
+  font-size: .95rem;
+}
+.mom-view h1 { font-size: 1.3rem; color: var(--primary); margin: 0 0 .6rem; }
+.mom-view h2 { font-size: 1.02rem; color: var(--primary); margin: 1.1rem 0 .35rem; }
+.mom-view p { margin: 0 0 .25rem; }
+.mom-view ul, .mom-view ol { margin: 0 0 .4rem; padding-left: 1.3rem; }
+.mom-view li { margin-bottom: .2rem; }
+.mom-view .table-wrap { overflow-x: auto; }
+.mom-view table { border-collapse: collapse; width: 100%; font-size: .88rem; margin: .3rem 0 .5rem; }
+.mom-view th, .mom-view td { border: 1px solid var(--border); padding: .4rem .55rem; text-align: left; vertical-align: top; }
+.mom-view th { background: var(--surface-2); }
+.placeholder { color: var(--muted); text-align: center; padding: 3.5rem 1rem; }
+.placeholder .big { font-size: 2rem; display: block; margin-bottom: .5rem; }
+
+.mom-edit, .transcript {
+  width: 100%;
+  min-height: 320px;
+  height: 50vh;
+  resize: vertical;
+  font-family: var(--mono);
+  font-size: .85rem;
+  line-height: 1.55;
+}
+.interim { min-height: 1.3rem; font-size: .85rem; color: var(--muted); font-style: italic; margin-top: .35rem; }
+#player { width: 100%; margin-top: .75rem; }
+
+.export-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap;
+  margin-top: 1rem; padding-top: .9rem;
+  border-top: 1px solid var(--border);
+}
+.export-label { font-size: .8rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+.export-btns { display: flex; gap: .45rem; flex-wrap: wrap; }
+.export-btns .btn { min-width: 5.2rem; }
+.extra-links { display: flex; gap: 1.2rem; margin-top: .6rem; flex-wrap: wrap; }
+
+/* ---------- Footer ---------- */
 .footer {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
+  display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
   padding: .6rem 1.25rem;
-  font-size: .8rem;
-  color: var(--muted);
+  font-size: .8rem; color: var(--muted);
   border-top: 1px solid var(--border);
   background: var(--surface);
 }
 
-/* ================= DIALOG ================= */
+/* ---------- Dialog ---------- */
 dialog {
-  width: min(640px, calc(100vw - 2rem));
+  width: min(560px, calc(100vw - 2rem));
   max-height: calc(100vh - 3rem);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 1rem 1.25rem 1.25rem;
-  background: var(--surface);
-  color: var(--text);
+  background: var(--surface); color: var(--text);
 }
 dialog::backdrop { background: rgba(10, 14, 22, .5); }
 .dialog-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: .75rem; }
 .dialog-head h2 { margin: 0; font-size: 1.1rem; }
-.info-body { font-size: .9rem; }
-.info-body ul, .info-body ol { padding-left: 1.2rem; margin: 0; }
-.info-body li { margin-bottom: .3rem; }
+.dialog-actions { display: flex; justify-content: flex-end; margin-top: 1rem; }
+.settings-body .field > span { margin-bottom: .2rem; }
+.radio { display: flex; gap: .5rem; align-items: flex-start; font-size: .9rem; padding: .5rem .6rem; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; margin-bottom: .4rem; }
+.radio input { margin-top: .25rem; }
+.radio:has(input:checked) { border-color: var(--primary); background: var(--primary-soft); }
+.key-row { display: flex; gap: .4rem; }
+.settings-body small { font-size: .78rem; }
+.tips { font-size: .85rem; margin-top: .25rem; }
+.tips summary { cursor: pointer; color: var(--primary); font-weight: 500; }
+.tips ul { padding-left: 1.2rem; margin: .5rem 0 0; color: var(--muted); }
+.tips li { margin-bottom: .3rem; }
 
 .history-list { list-style: none; margin: .75rem 0 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
-.history-list li {
-  display: flex;
-  align-items: center;
-  gap: .75rem;
-  padding: .65rem .75rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-}
+.history-list li { display: flex; align-items: center; gap: .75rem; padding: .65rem .75rem; border: 1px solid var(--border); border-radius: 9px; }
 .history-list li.current { border-color: var(--primary); background: var(--primary-soft); }
 .history-list .meta { flex: 1; min-width: 0; }
 .history-list .meta strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .history-list .meta small { color: var(--muted); }
 .history-list .item-actions { display: flex; gap: .3rem; flex: none; }
 .history-list .empty { justify-content: center; color: var(--muted); border-style: dashed; }
+.btn.danger-text { color: var(--danger); }
 
-/* ================= TOAST ================= */
+/* ---------- Toast ---------- */
 .toast {
-  position: fixed;
-  left: 50%;
-  bottom: 1.5rem;
+  position: fixed; left: 50%; bottom: 1.5rem;
   transform: translateX(-50%) translateY(200%);
-  opacity: 0;
-  visibility: hidden;
-  background: var(--text);
-  color: var(--bg);
-  padding: .65rem 1rem;
-  border-radius: 8px;
+  opacity: 0; visibility: hidden;
+  background: var(--text); color: var(--bg);
+  padding: .65rem 1rem; border-radius: 8px;
   font-size: .9rem;
   max-width: calc(100vw - 2rem);
   box-shadow: 0 6px 20px rgba(0, 0, 0, .2);
   transition: transform .25s ease, opacity .25s ease, visibility .25s;
-  z-index: 100;
-  pointer-events: none;
+  z-index: 100; pointer-events: none;
 }
 .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; visibility: visible; }
 .toast.error { background: var(--danger); color: #fff; }
 
-/* ================= RESPONSIF ================= */
-@media (max-width: 960px) {
-  .layout { grid-template-columns: 1fr; }
-  .side-col { order: -1; } /* di HP, kontrol rekaman tampil duluan */
-}
-
+/* ---------- Responsive ---------- */
 @media (max-width: 640px) {
   body { font-size: 14px; }
   .topbar { padding: .5rem .75rem; }
-  .brand span:last-child { display: none; }
-  .layout { padding: .75rem; }
-  .banner { margin: .75rem .75rem 0; }
-  .row2 { grid-template-columns: 1fr; gap: 0; }
-
-  /* Tabel action items jadi kartu bertumpuk */
-  .actions-table thead { display: none; }
-  .actions-table, .actions-table tbody, .actions-table tr, .actions-table td { display: block; width: 100% !important; }
-  .actions-table tr { border: 1px solid var(--border); border-radius: 8px; padding: .4rem; margin-bottom: .5rem; position: relative; }
-  .actions-table td { padding: .25rem; }
-  .actions-table td[data-label]::before {
-    content: attr(data-label);
-    display: block;
-    font-size: .75rem;
-    font-weight: 600;
-    color: var(--muted);
-    margin-bottom: .15rem;
-  }
-  .actions-table td:last-child { position: absolute; top: .2rem; right: .2rem; width: auto !important; }
-  .actions-table td:first-child { padding-right: 2.2rem; }
+  .brand-text { display: none; }
+  .wrap { padding: .75rem; gap: .75rem; }
+  .card { padding: .95rem; }
+  .meeting-grid { grid-template-columns: 1fr; gap: 0; }
+  .rec-main { flex-wrap: wrap; }
+  .rec-btn { flex: 1; justify-content: center; order: 2; }
+  .rec-meta { flex-basis: 100%; order: 1; }
+  #btnPause { order: 3; }
+  .rec-options { flex-direction: column; gap: .5rem; }
+  .export-bar { flex-direction: column; align-items: stretch; }
+  .export-btns { display: grid; grid-template-columns: repeat(4, 1fr); }
+  .export-btns .btn { min-width: 0; padding: .55rem .3rem; }
 }
 
 </style>
   <script>
-    // Terapkan tema sedini mungkin supaya tidak berkedip
     (function () {
       try {
         var t = localStorage.getItem('mom.theme') ||
@@ -427,180 +376,133 @@ dialog::backdrop { background: rgba(10, 14, 22, .5); }
 </head>
 <body>
   <script>
-    // Tampilkan error di layar supaya mudah dilacak (terutama di HP)
     window.addEventListener('error', function (e) {
-      var box = document.getElementById('browserWarning');
+      var box = document.getElementById('banner');
       if (!box) return;
       box.hidden = false;
       box.textContent = '⚠ Aplikasi mengalami error: ' + (e.message || 'file gagal dimuat') +
         '. Coba refresh halaman. Kalau masih muncul, kirim screenshot pesan ini.';
     });
   </script>
+
   <header class="topbar">
-    <div class="brand"><span class="logo">📝</span><span>Catatan MoM</span></div>
+    <div class="brand"><span class="logo">📝</span><span class="brand-text">Catatan MoM</span></div>
     <nav class="top-actions">
-      <button id="btnNew" class="btn ghost" type="button">+ MoM Baru</button>
+      <button id="btnNew" class="btn ghost" type="button">+ Baru</button>
       <button id="btnHistory" class="btn ghost" type="button">Riwayat</button>
-      <button id="btnInfo" class="btn ghost" type="button">Info</button>
-      <button id="btnTheme" class="btn ghost icon" type="button" title="Ganti tema terang/gelap" aria-label="Ganti tema">🌓</button>
+      <button id="btnSettings" class="btn ghost" type="button" title="Pengaturan" aria-label="Pengaturan">⚙️</button>
+      <button id="btnTheme" class="btn ghost" type="button" title="Ganti tema" aria-label="Ganti tema">🌓</button>
     </nav>
   </header>
 
-  <div id="browserWarning" class="banner warn" hidden></div>
+  <div id="banner" class="banner warn" hidden></div>
   <div id="recoveryBanner" class="banner info" hidden>
     <span id="recoveryText"></span>
     <span class="banner-actions">
       <button id="btnRecoverDownload" class="btn small primary" type="button">Download</button>
-      <button id="btnRecoverDiscard" class="btn small" type="button">Buang</button>
       <button id="btnRecoverClose" class="btn small ghost" type="button">Tutup</button>
     </span>
   </div>
 
-  <main class="layout">
-    <!-- ================= KOLOM FORM ================= -->
-    <section class="col form-col">
-      <div class="card">
-        <h2>Info Meeting</h2>
-        <label class="field">
-          <span>Judul meeting</span>
-          <input id="title" type="text" placeholder="mis. Weekly Review Sales Q4" autocomplete="off">
-        </label>
-        <div class="row2">
-          <label class="field">
-            <span>Tanggal &amp; jam</span>
-            <input id="datetime" type="datetime-local">
-          </label>
-          <label class="field">
-            <span>Platform</span>
-            <select id="platform">
-              <option>Zoom</option>
-              <option>Teams</option>
-              <option>Offline</option>
-              <option>Lainnya</option>
-            </select>
-          </label>
-        </div>
-        <div class="field">
-          <span>Peserta</span>
-          <div class="tags" id="tagsBox">
-            <input id="participantInput" type="text" placeholder="Ketik nama, tekan Enter" autocomplete="off">
-          </div>
-        </div>
+  <main class="wrap">
+    <!-- ============ 1. INFO MEETING ============ -->
+    <section class="card">
+      <div class="meeting-grid">
         <label class="field">
           <span>Agenda</span>
-          <textarea id="agenda" rows="3" placeholder="Topik yang dibahas…"></textarea>
+          <input id="agenda" type="text" placeholder="mis. Weekly Review Sales Q4" autocomplete="off">
+        </label>
+        <label class="field">
+          <span>Tanggal</span>
+          <input id="datetime" type="datetime-local">
         </label>
       </div>
-
-      <div class="card">
-        <h2>Catatan Diskusi</h2>
-        <textarea id="notes" rows="12" placeholder="Poin-poin diskusi selama meeting…"></textarea>
-      </div>
-
-      <div class="card">
-        <div class="card-head">
-          <h2>Keputusan</h2>
-          <button id="btnAddDecision" class="btn small" type="button">+ Tambah</button>
+      <div class="field">
+        <span>Peserta</span>
+        <div class="tags" id="tagsBox">
+          <input id="attendeeInput" type="text" placeholder="Ketik nama, tekan Enter" autocomplete="off">
         </div>
-        <ol id="decisions" class="list"></ol>
-      </div>
-
-      <div class="card">
-        <div class="card-head">
-          <h2>Action Items</h2>
-          <button id="btnAddAction" class="btn small" type="button">+ Tambah</button>
-        </div>
-        <div class="table-wrap">
-          <table class="actions-table">
-            <thead>
-              <tr><th>Tugas</th><th>PIC</th><th>Deadline</th><th>Status</th><th></th></tr>
-            </thead>
-            <tbody id="actions"></tbody>
-          </table>
-        </div>
-        <datalist id="peopleList"></datalist>
-      </div>
-
-      <div class="card">
-        <h2>Open Issues / Follow-up</h2>
-        <textarea id="issues" rows="4" placeholder="Hal yang belum selesai atau perlu ditindaklanjuti…"></textarea>
       </div>
     </section>
 
-    <!-- ================= KOLOM SAMPING ================= -->
-    <aside class="col side-col">
-      <div class="card">
-        <h2>Rekaman</h2>
-        <label class="field">
+    <!-- ============ 2. REKAM ============ -->
+    <section class="card recorder">
+      <div class="rec-main">
+        <button id="btnRec" class="rec-btn" type="button">
+          <span class="rec-icon" aria-hidden="true"></span>
+          <span id="btnRecLabel">Mulai</span>
+        </button>
+        <div class="rec-meta">
+          <div class="rec-line">
+            <span id="recDot" class="dot" aria-hidden="true"></span>
+            <span id="recTimer" class="timer">00:00:00</span>
+            <canvas id="levelMeter" width="120" height="12" aria-hidden="true"></canvas>
+          </div>
+          <div id="recStatus" class="hint">Siap merekam. Klik Mulai saat meeting dimulai.</div>
+        </div>
+        <button id="btnPause" class="btn" type="button" hidden>❚❚ Jeda</button>
+      </div>
+      <div class="rec-options">
+        <label class="mini">
           <span>Sumber audio</span>
           <select id="audioSource">
-            <option value="mic">Mikrofon saja (meeting offline)</option>
-            <option value="mix">Mikrofon + audio tab/sistem (Zoom/Teams)</option>
+            <option value="mic">Mikrofon (offline / speaker)</option>
+            <option value="mix">Mikrofon + audio tab (Zoom/Teams)</option>
           </select>
         </label>
-        <p id="mixHint" class="hint" hidden>
-          Setelah klik <b>Mulai</b>, pilih tab/layar meeting lalu <b>centang "Share tab audio"</b>
-          (atau "Share system audio" untuk aplikasi desktop Zoom/Teams di Windows).
-        </p>
-        <div class="rec-status">
-          <span id="recDot" class="dot" aria-hidden="true"></span>
-          <span id="recTimer" class="timer">00:00:00</span>
-          <canvas id="levelMeter" width="140" height="14" aria-hidden="true"></canvas>
-        </div>
-        <div class="btn-row">
-          <button id="btnRecStart" class="btn primary" type="button">● Mulai</button>
-          <button id="btnRecPause" class="btn" type="button" disabled>❚❚ Jeda</button>
-          <button id="btnRecStop" class="btn danger" type="button" disabled>■ Stop</button>
-        </div>
-        <p id="recInfo" class="hint"></p>
-        <audio id="recPlayer" controls hidden></audio>
-      </div>
-
-      <div class="card">
-        <div class="card-head">
-          <h2>Transkrip Live</h2>
-          <label class="switch">
-            <input id="transcriptToggle" type="checkbox">
-            <span class="slider" aria-hidden="true"></span>
-            <span class="switch-label">Aktif</span>
-          </label>
-        </div>
-        <label class="field">
-          <span>Bahasa</span>
-          <select id="transcriptLang">
+        <label class="mini">
+          <span>Bahasa meeting</span>
+          <select id="speechLang">
             <option value="id-ID">Bahasa Indonesia</option>
             <option value="en-US">English</option>
           </select>
         </label>
-        <p id="transcriptStatus" class="hint"></p>
-        <textarea id="transcript" rows="12" placeholder="Transkrip akan muncul di sini dengan timestamp. Bisa diedit manual."></textarea>
-        <div id="interim" class="interim" aria-live="polite"></div>
-        <div class="btn-row wrap">
-          <button id="btnTranscriptToNotes" class="btn small" type="button">Masukkan ke catatan diskusi</button>
-          <button id="btnCopyPrompt" class="btn small" type="button">Copy prompt ringkasan</button>
-          <button id="btnClearTranscript" class="btn small ghost" type="button">Kosongkan</button>
+      </div>
+      <p id="mixHint" class="hint" hidden>
+        Setelah klik Mulai, pilih tab meeting lalu centang <b>Share tab audio</b>
+        (untuk aplikasi desktop Zoom/Teams di Windows: pilih layar dan centang <b>Share system audio</b>).
+      </p>
+    </section>
+
+    <!-- ============ 3. HASIL ============ -->
+    <section class="card result">
+      <div class="result-head">
+        <div class="tabs" role="tablist">
+          <button class="tab active" data-tab="mom" role="tab" type="button">MoM</button>
+          <button class="tab" data-tab="transcript" role="tab" type="button">Transkrip</button>
         </div>
-        <details class="tips">
-          <summary>Tips transkripsi</summary>
-          <ul>
-            <li>Transkrip live hanya mendengar <b>mikrofon</b>. Untuk Zoom/Teams, pakai <b>speaker</b> (bukan headset) supaya suara peserta lain ikut tertangkap.</li>
-            <li>Satu bahasa per sesi. Untuk meeting campuran Indonesia–English, pilih <b>Bahasa Indonesia</b>.</li>
-            <li>Gunakan Chrome atau Edge di laptop dan pastikan internet stabil.</li>
-            <li>Hasil transkrip otomatis bisa salah dengar. Pakai tombol <b>Copy prompt ringkasan</b> lalu paste ke Claude untuk dirapikan jadi MoM.</li>
-          </ul>
-        </details>
+        <div class="result-tools">
+          <button id="btnRegenerate" class="btn small" type="button" title="Buat ulang MoM dari transkrip">↻ Buat ulang</button>
+          <button id="btnEdit" class="btn small" type="button">✎ Edit</button>
+        </div>
+      </div>
+      <div id="momStatus" class="status-line" hidden></div>
+
+      <div id="panelMom" class="panel">
+        <div id="momView" class="mom-view"></div>
+        <textarea id="momEdit" class="mom-edit" hidden spellcheck="false"></textarea>
+      </div>
+      <div id="panelTranscript" class="panel" hidden>
+        <textarea id="transcript" class="transcript" placeholder="Transkrip muncul di sini secara live saat merekam. Bisa diedit."></textarea>
+        <div id="interim" class="interim" aria-live="polite"></div>
       </div>
 
-      <div class="card">
-        <h2>Export</h2>
-        <div class="export-grid">
-          <button id="btnDocx" class="btn primary" type="button">Word (.docx)</button>
-          <button id="btnTxt" class="btn" type="button">Notepad (.txt)</button>
-          <button id="btnTranscriptTxt" class="btn" type="button">Transkrip (.txt)</button>
-          <button id="btnAudio" class="btn" type="button" disabled>Rekaman (audio)</button>
+      <audio id="player" controls hidden></audio>
+
+      <div class="export-bar">
+        <span class="export-label">Export MoM</span>
+        <div class="export-btns">
+          <button id="btnWord" class="btn" type="button">Word</button>
+          <button id="btnPdf" class="btn" type="button">PDF</button>
+          <button id="btnTxt" class="btn" type="button">Notepad</button>
+          <button id="btnCopy" class="btn primary" type="button">Copy</button>
         </div>
       </div>
-    </aside>
+      <div class="extra-links">
+        <button id="btnAudio" class="link" type="button" disabled>⬇ Rekaman audio</button>
+        <button id="btnTranscriptTxt" class="link" type="button">⬇ Transkrip (.txt)</button>
+      </div>
+    </section>
   </main>
 
   <footer class="footer">
@@ -608,64 +510,83 @@ dialog::backdrop { background: rgba(10, 14, 22, .5); }
     <span class="muted">Data tersimpan di browser ini saja</span>
   </footer>
 
-  <!-- ================= DIALOG RIWAYAT ================= -->
+  <!-- ============ RIWAYAT ============ -->
   <dialog id="historyDialog">
     <div class="dialog-head">
-      <h2>Riwayat MoM</h2>
-      <form method="dialog"><button class="btn ghost icon" aria-label="Tutup">✕</button></form>
+      <h2>Riwayat Meeting</h2>
+      <form method="dialog"><button class="btn ghost" aria-label="Tutup">✕</button></form>
     </div>
-    <input id="historySearch" type="search" placeholder="Cari judul atau peserta…">
+    <input id="historySearch" type="search" placeholder="Cari agenda atau peserta…">
     <ul id="historyList" class="history-list"></ul>
-    <p class="hint">"Duplikat" membuat MoM baru dengan judul, peserta, agenda, dan action item yang belum selesai, cocok untuk meeting rutin.</p>
   </dialog>
 
-  <!-- ================= DIALOG INFO ================= -->
-  <dialog id="infoDialog">
+  <!-- ============ PENGATURAN ============ -->
+  <dialog id="settingsDialog">
     <div class="dialog-head">
-      <h2>Info &amp; Privasi</h2>
-      <form method="dialog"><button class="btn ghost icon" aria-label="Tutup">✕</button></form>
+      <h2>Pengaturan</h2>
+      <form method="dialog"><button class="btn ghost" aria-label="Tutup">✕</button></form>
     </div>
-    <div class="info-body">
-      <h3>Cara pakai singkat</h3>
-      <ol>
-        <li>Isi info meeting (judul, peserta, agenda).</li>
-        <li>Pilih sumber audio, klik <b>Mulai</b> untuk merekam. Nyalakan <b>Transkrip Live</b> bila perlu.</li>
-        <li>Catat keputusan dan action items selama meeting.</li>
-        <li>Selesai meeting: klik <b>Stop</b>, lalu export ke Word, Notepad, transkrip, atau audio.</li>
-      </ol>
-      <h3>Keterbatasan</h3>
-      <ul>
-        <li><b>Transkrip live hanya mendengar mikrofon default</b>, bukan audio tab. Rekaman audio tetap bisa menangkap suara tab/sistem.</li>
-        <li>Transkripsi mengenali <b>satu bahasa per sesi</b>; istilah English di tengah kalimat Indonesia kadang salah tangkap.</li>
-        <li>Transkrip live hanya didukung Chrome / Edge (desktop paling stabil). Firefox tidak didukung.</li>
-        <li>Rekam audio tab/sistem hanya bisa di browser desktop. Di HP, gunakan mode "Mikrofon saja".</li>
-        <li>Mikrofon hanya bisa diakses lewat HTTPS (GitHub Pages sudah HTTPS).</li>
-      </ul>
-      <h3>Privasi</h3>
-      <ul>
-        <li>Semua catatan, transkrip, dan rekaman disimpan <b>di browser ini saja</b> (localStorage &amp; IndexedDB). Tidak ada server.</li>
-        <li><b>Pengecualian:</b> saat Transkrip Live aktif di Chrome/Edge, audio mikrofon diproses oleh layanan speech recognition milik Google/Microsoft untuk diubah jadi teks.</li>
-        <li>Menghapus data browser (clear site data) akan menghapus semua MoM. Export file penting secara berkala.</li>
-        <li>Minta izin peserta sebelum merekam meeting.</li>
-      </ul>
+    <div class="settings-body">
+      <div class="field">
+        <span>Cara membuat MoM</span>
+        <label class="radio"><input type="radio" name="mode" value="auto"> <b>Otomatis tanpa AI</b>: gratis, langsung jadi, berupa draft dari kata kunci transkrip</label>
+        <label class="radio"><input type="radio" name="mode" value="ai"> <b>Claude AI</b>: MoM rapi dan akurat, butuh API key Claude (berbayar per pemakaian)</label>
+      </div>
+      <div id="aiFields">
+        <label class="field">
+          <span>Claude API key</span>
+          <div class="key-row">
+            <input id="apiKey" type="password" placeholder="sk-ant-…" autocomplete="off" spellcheck="false">
+            <button id="btnShowKey" class="btn small" type="button">Lihat</button>
+          </div>
+          <small class="muted">Buat di console.anthropic.com → API Keys. Key hanya disimpan di browser ini. Jangan isi di komputer bersama.</small>
+        </label>
+        <label class="field">
+          <span>Model</span>
+          <select id="model">
+            <option value="claude-sonnet-5-5">Claude Sonnet 5.5 (disarankan)</option>
+            <option value="claude-haiku-5-5">Claude Haiku 5.5 (lebih murah)</option>
+            <option value="claude-opus-5-5">Claude Opus 5.5 (paling teliti)</option>
+          </select>
+        </label>
+      </div>
+      <label class="field">
+        <span>Bahasa MoM</span>
+        <select id="momLang">
+          <option value="id">Bahasa Indonesia</option>
+          <option value="en">English</option>
+        </select>
+      </label>
+      <details class="tips">
+        <summary>Info, keterbatasan &amp; privasi</summary>
+        <ul>
+          <li>Transkrip live memakai fitur speech recognition browser: paling baik di <b>Chrome / Edge laptop</b>. Firefox tidak didukung; di iPhone kurang stabil.</li>
+          <li>Transkrip hanya mendengar <b>mikrofon</b>. Untuk Zoom/Teams, pakai speaker (bukan headset) supaya suara peserta lain ikut tertranskrip. Rekaman audio tetap bisa menangkap audio tab.</li>
+          <li>Satu bahasa per sesi. Untuk meeting campuran, pilih Bahasa Indonesia.</li>
+          <li>Catatan, transkrip, dan rekaman disimpan <b>di browser ini saja</b>. Audio diproses layanan speech recognition Google/Microsoft/Apple untuk diubah jadi teks. Dengan mode Claude AI, transkrip dikirim ke Claude API.</li>
+          <li>Minta izin peserta sebelum merekam meeting.</li>
+        </ul>
+      </details>
+      <div class="dialog-actions">
+        <button id="btnSaveSettings" class="btn primary" type="button">Simpan</button>
+      </div>
     </div>
   </dialog>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <!-- Library pembuat file Word -->
   <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script>
 /* ---- js/storage.js ---- */
 /* =========================================================
-   storage.js — penyimpanan MoM (localStorage) dan audio (IndexedDB)
+   storage.js — penyimpanan meeting (localStorage), audio (IndexedDB), pengaturan
    ========================================================= */
 
 const Util = {
   uid() {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   },
-  /** Waktu lokal sekarang dalam format input datetime-local (YYYY-MM-DDTHH:mm) */
   nowLocal() {
     const d = new Date();
     d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
@@ -674,23 +595,16 @@ const Util = {
   todayISO() {
     return Util.nowLocal().slice(0, 10);
   },
-  /** "Kamis, 19 November 2026 · 13:00" */
-  formatDateTime(value) {
+  /** "Kamis, 19 November 2026 · 13:00" (atau English) */
+  formatDateTime(value, lang = 'id') {
     if (!value) return '-';
     const d = new Date(value);
     if (isNaN(d)) return value;
-    const date = d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-    const time = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
+    const loc = lang === 'en' ? 'en-GB' : 'id-ID';
+    const date = d.toLocaleDateString(loc, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const time = d.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
     return value.length > 10 ? `${date} · ${time}` : date;
   },
-  /** "20 Nov 2026" dari YYYY-MM-DD */
-  formatDate(value) {
-    if (!value) return '';
-    const d = new Date(value + 'T00:00');
-    if (isNaN(d)) return value;
-    return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-  },
-  /** ms → "mm:ss" atau "h:mm:ss" */
   formatClock(ms, alwaysHours = false) {
     const total = Math.max(0, Math.floor(ms / 1000));
     const h = Math.floor(total / 3600);
@@ -698,58 +612,48 @@ const Util = {
     const s = total % 60;
     const pad = n => String(n).padStart(2, '0');
     return (h || alwaysHours) ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+  },
+  formatDuration(ms, lang = 'id') {
+    const min = Math.max(1, Math.round(ms / 60000));
+    if (lang === 'en') return `${min} minute${min > 1 ? 's' : ''}`;
+    return `${min} menit`;
   }
 };
 
-/* ---------------- MoM di localStorage ---------------- */
+/* ---------------- Meeting di localStorage ---------------- */
 const Store = (() => {
-  const KEY_ITEMS = 'mom.items';
-  const KEY_CURRENT = 'mom.currentId';
+  const KEY_ITEMS = 'mom2.items';
+  const KEY_CURRENT = 'mom2.currentId';
 
   function blank() {
     return {
       id: Util.uid(),
-      title: '',
-      datetime: Util.nowLocal(),
-      platform: 'Zoom',
-      participants: [],
       agenda: '',
-      notes: '',
-      decisions: [],
-      actions: [],
-      issues: '',
+      datetime: Util.nowLocal(),
+      attendees: [],
       transcript: '',
+      mom: '',
+      momSource: '',   // 'ai' | 'auto' | 'manual'
+      duration: 0,
       createdAt: Date.now(),
       updatedAt: Date.now()
     };
   }
 
   function readAll() {
-    try {
-      return JSON.parse(localStorage.getItem(KEY_ITEMS)) || {};
-    } catch (e) {
-      return {};
-    }
+    try { return JSON.parse(localStorage.getItem(KEY_ITEMS)) || {}; } catch (e) { return {}; }
   }
+  function writeAll(items) { localStorage.setItem(KEY_ITEMS, JSON.stringify(items)); }
 
-  function writeAll(items) {
-    localStorage.setItem(KEY_ITEMS, JSON.stringify(items));
-  }
+  function list() { return Object.values(readAll()).sort((a, b) => b.updatedAt - a.updatedAt); }
+  function get(id) { return readAll()[id] || null; }
 
-  function list() {
-    return Object.values(readAll()).sort((a, b) => b.updatedAt - a.updatedAt);
-  }
-
-  function get(id) {
-    return readAll()[id] || null;
-  }
-
-  function save(mom) {
+  function save(m) {
     const items = readAll();
-    mom.updatedAt = Date.now();
-    items[mom.id] = JSON.parse(JSON.stringify(mom));
+    m.updatedAt = Date.now();
+    items[m.id] = JSON.parse(JSON.stringify(m));
     writeAll(items);
-    setCurrent(mom.id);
+    setCurrent(m.id);
   }
 
   function remove(id) {
@@ -759,49 +663,44 @@ const Store = (() => {
     if (currentId() === id) localStorage.removeItem(KEY_CURRENT);
   }
 
-  function currentId() {
-    return localStorage.getItem(KEY_CURRENT);
-  }
-
-  function setCurrent(id) {
-    localStorage.setItem(KEY_CURRENT, id);
-  }
+  function currentId() { return localStorage.getItem(KEY_CURRENT); }
+  function setCurrent(id) { localStorage.setItem(KEY_CURRENT, id); }
 
   function isEmpty(m) {
-    return !m.title.trim() && !m.agenda.trim() && !m.notes.trim() && !m.issues.trim() &&
-      !m.transcript.trim() && m.participants.length === 0 &&
-      m.decisions.every(d => !d.trim()) && m.actions.every(a => !(a.task || '').trim());
+    return !m.agenda.trim() && !m.transcript.trim() && !m.mom.trim() && m.attendees.length === 0;
   }
 
-  /** Lengkapi field yang hilang (untuk data versi lama) */
-  function normalize(m) {
-    return Object.assign(blank(), m);
-  }
+  function normalize(m) { return Object.assign(blank(), m); }
 
-  /** Salinan untuk meeting rutin: bawa judul, peserta, agenda, action item yang belum selesai */
-  function duplicate(m) {
-    const copy = blank();
-    copy.title = m.title ? `${m.title} (lanjutan)` : '';
-    copy.platform = m.platform;
-    copy.participants = [...m.participants];
-    copy.agenda = m.agenda;
-    copy.actions = m.actions.filter(a => a.status !== 'Selesai').map(a => ({ ...a }));
-    copy.issues = m.issues;
-    return copy;
-  }
-
-  return { blank, list, get, save, remove, currentId, setCurrent, isEmpty, normalize, duplicate };
+  return { blank, list, get, save, remove, currentId, setCurrent, isEmpty, normalize };
 })();
 
-/* ---------------- Audio di IndexedDB ----------------
-   Potongan rekaman disimpan tiap beberapa detik supaya tidak hilang
-   kalau browser crash / tab tertutup. */
+/* ---------------- Pengaturan ---------------- */
+const Settings = (() => {
+  const KEY = 'mom2.settings';
+  const defaults = {
+    mode: 'auto',               // 'auto' (tanpa AI) | 'ai' (Claude API)
+    apiKey: '',
+    model: 'claude-sonnet-5-5',
+    momLang: 'id',              // 'id' | 'en'
+    speechLang: 'id-ID',
+    audioSource: 'mic'
+  };
+  function get() {
+    try { return Object.assign({}, defaults, JSON.parse(localStorage.getItem(KEY)) || {}); } catch (e) { return { ...defaults }; }
+  }
+  function set(patch) {
+    const next = Object.assign(get(), patch);
+    localStorage.setItem(KEY, JSON.stringify(next));
+    return next;
+  }
+  return { get, set };
+})();
+
+/* ---------------- Audio di IndexedDB ---------------- */
 const AudioDB = (() => {
   let dbPromise = null;
-  const req = r => new Promise((res, rej) => {
-    r.onsuccess = () => res(r.result);
-    r.onerror = () => rej(r.error);
-  });
+  const req = r => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
 
   function open() {
     if (dbPromise) return dbPromise;
@@ -820,52 +719,39 @@ const AudioDB = (() => {
     return dbPromise;
   }
 
-  async function putSession(session) {
+  async function putSession(s) {
     const db = await open();
-    return req(db.transaction('sessions', 'readwrite').objectStore('sessions').put(session));
+    return req(db.transaction('sessions', 'readwrite').objectStore('sessions').put(s));
   }
-
   async function getSessions() {
     const db = await open();
     return req(db.transaction('sessions').objectStore('sessions').getAll());
   }
-
   async function addChunk(sessionId, blob) {
     const db = await open();
     return req(db.transaction('chunks', 'readwrite').objectStore('chunks').add({ session: sessionId, blob }));
   }
-
-  async function getBlob(session) {
+  async function getBlob(s) {
     const db = await open();
-    const rows = await req(db.transaction('chunks').objectStore('chunks').index('session').getAll(session.id));
-    return new Blob(rows.map(r => r.blob), { type: session.mime || 'audio/webm' });
+    const rows = await req(db.transaction('chunks').objectStore('chunks').index('session').getAll(s.id));
+    return new Blob(rows.map(r => r.blob), { type: s.mime || 'audio/webm' });
   }
-
   async function deleteSession(id) {
     const db = await open();
     const tx = db.transaction(['sessions', 'chunks'], 'readwrite');
     tx.objectStore('sessions').delete(id);
-    const cursorReq = tx.objectStore('chunks').index('session').openCursor(IDBKeyRange.only(id));
-    cursorReq.onsuccess = () => {
-      const c = cursorReq.result;
-      if (c) { c.delete(); c.continue(); }
-    };
-    return new Promise((res, rej) => {
-      tx.oncomplete = () => res();
-      tx.onerror = () => rej(tx.error);
-    });
+    const cur = tx.objectStore('chunks').index('session').openCursor(IDBKeyRange.only(id));
+    cur.onsuccess = () => { const c = cur.result; if (c) { c.delete(); c.continue(); } };
+    return new Promise((res, rej) => { tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); });
   }
-
-  /** Rekaman terbaru yang sudah selesai untuk satu MoM */
   async function latestForMom(momId) {
-    const sessions = (await getSessions()).filter(s => s.momId === momId && s.status === 'done');
-    sessions.sort((a, b) => b.startedAt - a.startedAt);
-    return sessions[0] || null;
+    const s = (await getSessions()).filter(x => x.momId === momId && x.status === 'done');
+    s.sort((a, b) => b.startedAt - a.startedAt);
+    return s[0] || null;
   }
-
   async function deleteForMom(momId, exceptId = null) {
-    const sessions = (await getSessions()).filter(s => s.momId === momId && s.id !== exceptId);
-    for (const s of sessions) await deleteSession(s.id);
+    const s = (await getSessions()).filter(x => x.momId === momId && x.id !== exceptId);
+    for (const x of s) await deleteSession(x.id);
   }
 
   return { putSession, getSessions, addChunk, getBlob, deleteSession, latestForMom, deleteForMom };
@@ -1215,26 +1101,347 @@ const Transcriber = (() => {
 
 </script>
   <script>
+/* ---- js/mom.js ---- */
+/* =========================================================
+   mom.js — membuat MoM dari transkrip
+   - Mode otomatis (tanpa AI): ekstraksi kata kunci, gratis, langsung jadi
+   - Mode Claude AI: kirim transkrip ke Claude API pakai API key milik pengguna
+   Output selalu dalam format markdown sederhana.
+   ========================================================= */
+
+const MomGen = (() => {
+  const LABELS = {
+    id: {
+      agenda: 'Agenda', date: 'Tanggal', attendees: 'Peserta', duration: 'Durasi',
+      summary: 'Ringkasan', points: 'Poin Diskusi', decisions: 'Keputusan',
+      actions: 'Action Items', issues: 'Open Issues / Follow-up',
+      no: 'No', task: 'Tugas', pic: 'PIC', deadline: 'Deadline', none: '-'
+    },
+    en: {
+      agenda: 'Agenda', date: 'Date', attendees: 'Attendees', duration: 'Duration',
+      summary: 'Summary', points: 'Discussion Points', decisions: 'Decisions',
+      actions: 'Action Items', issues: 'Open Issues / Follow-up',
+      no: 'No', task: 'Task', pic: 'PIC', deadline: 'Deadline', none: '-'
+    }
+  };
+
+  const cell = s => String(s || '').replace(/\|/g, '/').replace(/\s+/g, ' ').trim() || '-';
+  const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+  const escRx = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  function header(m, lang) {
+    const L = LABELS[lang];
+    const lines = [
+      '# Minutes of Meeting',
+      '',
+      `**${L.agenda}:** ${m.agenda.trim() || '-'}`,
+      `**${L.date}:** ${Util.formatDateTime(m.datetime, lang)}`,
+      `**${L.attendees}:** ${m.attendees.length ? m.attendees.join(', ') : '-'}`
+    ];
+    if (m.duration) lines.push(`**${L.duration}:** ${Util.formatDuration(m.duration, lang)}`);
+    return lines.join('\n');
+  }
+
+  function parseTranscript(t) {
+    return (t || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(l => {
+      const mm = l.match(/^\[(\d{1,2}:\d{2}(?::\d{2})?)\]\s*(.*)$/);
+      return mm ? { ts: mm[1], text: mm[2].trim() } : { ts: '', text: l };
+    }).filter(x => x.text);
+  }
+
+  /* ---------------- Mode otomatis (tanpa AI) ---------------- */
+  const RX = {
+    decision: /\b(sepakat|setuju|disepakati|diputuskan|keputusan(nya)?|kita putuskan|final(nya)?|fix(nya)? (kita|pakai|pilih)|jadi kita (pakai|pilih|ambil|lanjut|jalan)|di-?approve|approved?|agreed|decided|decision|go ahead)\b/i,
+    action: /\b(tolong|mohon|minta|harus|perlu|wajib|segera|siapkan|kirimkan|follow ?up|tindak ?lanjut|action items?|pic|deadline|paling lambat|akan (kirim|buat|siapkan|cek|follow|update|share|hubungi|koordinasi|susun|bikin)|nanti (kirim|buat|siapkan|cek|share|update|bikin|susun)|please|need to|will (send|prepare|check|share|update|follow|create)|assign(ed)?|to ?do)\b/i,
+    issue: /\b(belum|masih|kendala|hambatan|pending|issue|masalah|problem|risiko|risk|blocker|concern|tertunda|delay|terlambat|bingung|kurang jelas)\b/i,
+    key: /\b(target|progress|update|hasil|data|revenue|pipeline|sales|customer|pelanggan|budget|anggaran|rencana|plan|strategi|project|proyek|timeline|kpi|pencapaian|achievement|growth|churn|penjualan|biaya|cost|harga|price|launch|rollout|implementasi|evaluasi|review)\b/i
+  };
+  const DEADLINE = /\b(hari ini|besok|lusa|minggu depan|bulan depan|akhir (minggu|bulan)( ini)?|(hari )?(senin|selasa|rabu|kamis|jumat|jum'at|sabtu)( depan)?|tanggal \d{1,2}(\s+(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember))?|\d{1,2}\s+(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember|jan|feb|mar|apr|jun|jul|agu|aug|sep|okt|oct|nov|des|dec)|eod|end of (the )?(day|week|month)|next week|tomorrow|today|by (monday|tuesday|wednesday|thursday|friday))\b/i;
+
+  function findPic(text, attendees) {
+    for (const a of attendees) {
+      const first = a.trim().split(/\s+/)[0];
+      if (first.length >= 2 && new RegExp('(^|[^\\p{L}])' + escRx(first) + '([^\\p{L}]|$)', 'iu').test(text)) return a;
+    }
+    return 'TBD';
+  }
+
+  function autoGenerate(m, lang = 'id') {
+    const L = LABELS[lang];
+    const items = parseTranscript(m.transcript);
+    const used = new Set();
+    const pick = (rx, limit) => {
+      const out = [];
+      items.forEach((it, i) => {
+        if (out.length < limit && !used.has(i) && rx.test(it.text)) { used.add(i); out.push(it); }
+      });
+      return out;
+    };
+
+    const decisions = pick(RX.decision, 10);
+    const actions = pick(RX.action, 15).map(it => {
+      const dl = it.text.match(DEADLINE);
+      return { task: cap(it.text), pic: findPic(it.text, m.attendees), deadline: dl ? dl[0] : 'TBD' };
+    });
+    const issues = pick(RX.issue, 10);
+    let points = items.filter((it, i) => !used.has(i) && (RX.key.test(it.text) || it.text.split(/\s+/).length >= 12));
+    if (points.length < 3) {
+      // Ambil sampel merata kalau kata kunci tidak banyak ditemukan
+      const rest = items.filter((_, i) => !used.has(i));
+      const step = Math.max(1, Math.floor(rest.length / 8));
+      points = rest.filter((_, i) => i % step === 0);
+    }
+    points = points.slice(0, 12);
+
+    const tsTag = it => (it.ts ? ` (${it.ts})` : "");
+    const bullets = arr => arr.length ? arr.map(it => `- ${cap(it.text)}${tsTag(it)}`).join('\n') : `- ${L.none}`;
+
+    const summary = lang === 'en'
+      ? (items.length
+        ? `The meeting${m.agenda.trim() ? ` on "${m.agenda.trim()}"` : ''} was attended by ${m.attendees.length || 'several'} participant(s)${m.duration ? ` and lasted about ${Util.formatDuration(m.duration, 'en')}` : ''}. ${decisions.length} decision(s), ${actions.length} action item(s) and ${issues.length} open issue(s) were detected from the transcript.`
+        : 'No transcript was captured, so the MoM could not be generated automatically. Fill it in manually with the Edit button.')
+      : (items.length
+        ? `Meeting${m.agenda.trim() ? ` membahas "${m.agenda.trim()}"` : ''} dihadiri ${m.attendees.length || 'beberapa'} peserta${m.duration ? ` dan berlangsung sekitar ${Util.formatDuration(m.duration)}` : ''}. Dari transkrip terdeteksi ${decisions.length} keputusan, ${actions.length} action item, dan ${issues.length} hal yang perlu ditindaklanjuti.`
+        : 'Transkrip kosong sehingga MoM belum bisa dibuat otomatis. Cek mikrofon / dukungan browser, atau isi manual lewat tombol Edit.');
+
+    const actionTable = actions.length
+      ? [`| ${L.no} | ${L.task} | ${L.pic} | ${L.deadline} |`, '|---|---|---|---|',
+        ...actions.map((a, i) => `| ${i + 1} | ${cell(a.task)} | ${cell(a.pic)} | ${cell(a.deadline)} |`)].join('\n')
+      : `- ${L.none}`;
+
+    return [
+      header(m, lang), '',
+      `## ${L.summary}`, summary, '',
+      `## ${L.points}`, bullets(points), '',
+      `## ${L.decisions}`, bullets(decisions), '',
+      `## ${L.actions}`, actionTable, '',
+      `## ${L.issues}`, bullets(issues)
+    ].join('\n');
+  }
+
+  /* ---------------- Mode Claude AI ---------------- */
+  function systemPrompt(lang) {
+    const L = LABELS[lang];
+    const language = lang === 'en' ? 'English' : 'Bahasa Indonesia (pertahankan istilah bisnis English yang memang dipakai di meeting)';
+    return `Kamu adalah notulis profesional. Tugasmu membuat Minutes of Meeting dari transkrip otomatis sebuah meeting.
+
+Tulis dalam ${language}. Keluarkan HANYA bagian-bagian berikut, persis dengan judul ini, dalam format markdown, tanpa kata pengantar, tanpa penutup, tanpa code block:
+
+## ${L.summary}
+(3–5 kalimat ringkasan isi meeting)
+
+## ${L.points}
+(bullet "- " per poin, kelompokkan per topik bila perlu, pakai **tebal** untuk nama topik)
+
+## ${L.decisions}
+(bullet "- "; tulis "- -" jika tidak ada)
+
+## ${L.actions}
+(tabel markdown dengan kolom: | ${L.no} | ${L.task} | ${L.pic} | ${L.deadline} |; jika PIC atau deadline tidak disebut tulis "TBD"; tulis "- -" jika tidak ada action item)
+
+## ${L.issues}
+(bullet "- "; tulis "- -" jika tidak ada)
+
+Aturan:
+- Transkrip dibuat otomatis oleh speech recognition: bisa salah dengar (terutama istilah English, angka, dan nama orang), tanpa tanda baca, dan tanpa nama pembicara. Perbaiki berdasarkan konteks.
+- Untuk PIC, gunakan nama dari daftar peserta bila memang disebut terkait tugas tersebut.
+- Jangan menambahkan informasi yang tidak ada di transkrip.`;
+  }
+
+  async function aiGenerate(m, settings) {
+    const lang = settings.momLang;
+    if (!settings.apiKey) throw new Error('API key Claude belum diisi di Pengaturan.');
+    if (!m.transcript.trim()) throw new Error('Transkrip kosong, tidak ada yang bisa diringkas.');
+    const user = `Info meeting:
+- Agenda: ${m.agenda || '-'}
+- Tanggal: ${Util.formatDateTime(m.datetime, lang)}
+- Peserta: ${m.attendees.join(', ') || '-'}
+- Durasi: ${m.duration ? Util.formatDuration(m.duration, lang) : '-'}
+
+Transkrip (format [menit:detik] teks):
+"""
+${m.transcript}
+"""`;
+
+    let res;
+    try {
+      res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-api-key': settings.apiKey.trim(),
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: settings.model || 'claude-sonnet-5-5',
+          max_tokens: 4096,
+          system: systemPrompt(lang),
+          messages: [{ role: 'user', content: user }]
+        })
+      });
+    } catch (e) {
+      throw new Error('Tidak bisa terhubung ke Claude API. Cek koneksi internet.');
+    }
+
+    if (!res.ok) {
+      let detail = '';
+      try { const j = await res.json(); detail = j.error && j.error.message ? j.error.message : ''; } catch (e) {}
+      const known = {
+        401: 'API key tidak valid.',
+        403: 'API key tidak punya akses.',
+        404: 'Model tidak ditemukan. Cek nama model di Pengaturan.',
+        429: 'Terlalu banyak permintaan / kuota habis. Coba lagi sebentar.',
+        529: 'Server Claude sedang sibuk. Coba lagi sebentar.'
+      };
+      throw new Error((known[res.status] || `Claude API error ${res.status}.`) + (detail ? ` (${detail})` : ''));
+    }
+
+    const data = await res.json();
+    let text = (data.content || []).filter(c => c.type === 'text').map(c => c.text).join('\n').trim();
+    text = text.replace(/^```(?:markdown|md)?\s*/i, '').replace(/```\s*$/, '').trim();
+    if (!text) throw new Error('Claude tidak mengembalikan hasil.');
+    return header(m, lang) + '\n\n' + text;
+  }
+
+  /** Buat MoM sesuai pengaturan. Kalau AI gagal, otomatis pakai mode tanpa AI. */
+  async function generate(m, settings) {
+    if (settings.mode === 'ai' && settings.apiKey) {
+      try {
+        return { md: await aiGenerate(m, settings), source: 'ai' };
+      } catch (e) {
+        return { md: autoGenerate(m, settings.momLang), source: 'auto', error: e.message };
+      }
+    }
+    return { md: autoGenerate(m, settings.momLang), source: 'auto' };
+  }
+
+  return { generate, autoGenerate, header };
+})();
+
+</script>
+  <script>
 /* ---- js/export.js ---- */
 /* =========================================================
-   export.js — export ke Word (.docx), Notepad (.txt), transkrip, prompt AI
+   export.js — tampilan & export MoM (markdown sederhana)
+   → HTML (tampilan & clipboard), Word (.docx), PDF, Notepad (.txt)
    ========================================================= */
 
 const Exporter = (() => {
-  const dash = v => (v && String(v).trim()) ? String(v).trim() : '-';
-  const cleanList = arr => arr.map(s => (s || '').trim()).filter(Boolean);
-  const cleanActions = arr => arr.filter(a => (a.task || '').trim() || (a.pic || '').trim());
+  /* ---------------- Parser markdown sederhana ---------------- */
+  function parse(md) {
+    const blocks = [];
+    const lines = (md || '').split(/\r?\n/);
+    let i = 0;
+    while (i < lines.length) {
+      const raw = lines[i];
+      const line = raw.trim();
+      if (!line) { i++; continue; }
+      if (line.startsWith('|')) {
+        const rows = [];
+        while (i < lines.length && lines[i].trim().startsWith('|')) {
+          const r = lines[i].trim();
+          if (!/^\|[\s:|-]+\|?$/.test(r)) {
+            rows.push(r.replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim()));
+          }
+          i++;
+        }
+        if (rows.length) blocks.push({ type: 'table', rows });
+        continue;
+      }
+      let m;
+      if ((m = line.match(/^#\s+(.*)/))) blocks.push({ type: 'h1', text: m[1] });
+      else if ((m = line.match(/^#{2,6}\s+(.*)/))) blocks.push({ type: 'h2', text: m[1] });
+      else if ((m = line.match(/^[-*•]\s+(.*)/))) blocks.push({ type: 'li', text: m[1] });
+      else if ((m = line.match(/^(\d+)[.)]\s+(.*)/))) blocks.push({ type: 'oli', n: m[1], text: m[2] });
+      else blocks.push({ type: 'p', text: line });
+      i++;
+    }
+    return blocks;
+  }
 
+  /** "**Label:** isi" → [{text:'Label:', bold:true}, {text:' isi', bold:false}] */
+  function inline(text) {
+    const parts = String(text).split(/\*\*/);
+    return parts.map((t, idx) => ({ text: t, bold: idx % 2 === 1 })).filter(s => s.text);
+  }
+  const strip = t => String(t).replace(/\*\*/g, '');
+
+  /* ---------------- HTML ---------------- */
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const inlineHTML = t => inline(t).map(s => s.bold ? `<strong>${esc(s.text)}</strong>` : esc(s.text)).join('');
+
+  /** styled=true → pakai style inline (untuk clipboard/print agar rapi di Word/Outlook) */
+  function toHTML(md, styled = false) {
+    const st = styled ? {
+      h1: ' style="font-family:Calibri,Arial;font-size:20pt;color:#2457D6;margin:0 0 8pt"',
+      h2: ' style="font-family:Calibri,Arial;font-size:13pt;color:#2457D6;margin:14pt 0 4pt"',
+      p: ' style="font-family:Calibri,Arial;font-size:11pt;margin:0 0 4pt"',
+      ul: ' style="font-family:Calibri,Arial;font-size:11pt;margin:0 0 6pt;padding-left:18pt"',
+      table: ' style="border-collapse:collapse;font-family:Calibri,Arial;font-size:10.5pt;margin:4pt 0 8pt"',
+      th: ' style="border:1px solid #C9D1DE;background:#E8EEFB;padding:4pt 6pt;text-align:left"',
+      td: ' style="border:1px solid #C9D1DE;padding:4pt 6pt;vertical-align:top"'
+    } : { h1: '', h2: '', p: '', ul: '', table: '', th: '', td: '' };
+
+    const out = [];
+    let list = null;
+    const closeList = () => { if (list) { out.push(`</${list}>`); list = null; } };
+    parse(md).forEach(b => {
+      if (b.type === 'li' || b.type === 'oli') {
+        const tag = b.type === 'li' ? 'ul' : 'ol';
+        if (list !== tag) { closeList(); out.push(`<${tag}${st.ul}>`); list = tag; }
+        out.push(`<li>${inlineHTML(b.text)}</li>`);
+        return;
+      }
+      closeList();
+      if (b.type === 'h1') out.push(`<h1${st.h1}>${inlineHTML(b.text)}</h1>`);
+      else if (b.type === 'h2') out.push(`<h2${st.h2}>${inlineHTML(b.text)}</h2>`);
+      else if (b.type === 'p') out.push(`<p${st.p}>${inlineHTML(b.text)}</p>`);
+      else if (b.type === 'table') {
+        const [head, ...body] = b.rows;
+        out.push(`<div class="table-wrap"><table${st.table}><thead><tr>${head.map(c => `<th${st.th}>${inlineHTML(c)}</th>`).join('')}</tr></thead><tbody>` +
+          body.map(r => `<tr>${head.map((_, ci) => `<td${st.td}>${inlineHTML(r[ci] || '')}</td>`).join('')}</tr>`).join('') +
+          '</tbody></table></div>');
+      }
+    });
+    closeList();
+    return out.join('\n');
+  }
+
+  /* ---------------- Teks polos (Notepad / clipboard) ---------------- */
+  function toPlain(md) {
+    const out = [];
+    parse(md).forEach(b => {
+      if (b.type === 'h1') { const t = strip(b.text).toUpperCase(); out.push(t, '='.repeat(t.length), ''); }
+      else if (b.type === 'h2') { const t = strip(b.text).toUpperCase(); out.push('', t, '-'.repeat(t.length)); }
+      else if (b.type === 'li') out.push('- ' + strip(b.text));
+      else if (b.type === 'oli') out.push(`${b.n}. ${strip(b.text)}`);
+      else if (b.type === 'p') out.push(strip(b.text));
+      else if (b.type === 'table') {
+        const [head, ...body] = b.rows;
+        const isAction = head.length >= 4 && /^no$/i.test(head[0]);
+        body.forEach(r => {
+          if (isAction) {
+            out.push(`${strip(r[0])}. ${strip(r[1] || '-')}`);
+            out.push(`   ${strip(head[2])}: ${strip(r[2] || '-')} | ${strip(head[3])}: ${strip(r[3] || '-')}`);
+          } else {
+            out.push(head.map((h, ci) => `${strip(h)}: ${strip(r[ci] || '-')}`).join(' | '));
+          }
+        });
+      }
+    });
+    return out.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
+  }
+
+  /* ---------------- File helper ---------------- */
   function safeName(s) {
     const n = (s || '').replace(/[\\/:*?"<>|#%{}~&]+/g, '').trim().replace(/\s+/g, '_').slice(0, 60);
     return n || 'Meeting';
   }
-
-  function filename(mom, prefix, ext) {
-    const date = (mom.datetime || Util.todayISO()).slice(0, 10);
-    return `${prefix}_${safeName(mom.title)}_${date}.${ext}`;
+  function filename(m, prefix, ext) {
+    const date = (m.datetime || Util.todayISO()).slice(0, 10);
+    return `${prefix}_${safeName(m.agenda)}_${date}.${ext}`;
   }
-
   function download(blob, name) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1243,319 +1450,40 @@ const Exporter = (() => {
     document.body.appendChild(a);
     a.click();
     a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
   }
 
-  /* ---------------- Notepad (.txt) ---------------- */
-  function toText(mom) {
-    const L = [];
-    const section = title => { L.push('', title.toUpperCase(), '-'.repeat(title.length)); };
-    L.push('MINUTES OF MEETING', '==================', '');
-    L.push(`Judul     : ${dash(mom.title)}`);
-    L.push(`Tanggal   : ${Util.formatDateTime(mom.datetime)}`);
-    L.push(`Platform  : ${dash(mom.platform)}`);
-    L.push(`Peserta   : ${mom.participants.length ? mom.participants.join(', ') : '-'}`);
-
-    section('Agenda');
-    L.push(dash(mom.agenda));
-
-    section('Catatan Diskusi');
-    L.push(dash(mom.notes));
-
-    section('Keputusan');
-    const decisions = cleanList(mom.decisions);
-    if (decisions.length) decisions.forEach((d, i) => L.push(`${i + 1}. ${d}`));
-    else L.push('-');
-
-    section('Action Items');
-    const actions = cleanActions(mom.actions);
-    if (actions.length) {
-      actions.forEach((a, i) => {
-        L.push(`${i + 1}. ${dash(a.task)}`);
-        L.push(`   PIC: ${dash(a.pic)} | Deadline: ${dash(Util.formatDate(a.deadline))} | Status: ${dash(a.status)}`);
-      });
-    } else L.push('-');
-
-    section('Open Issues / Follow-up');
-    L.push(dash(mom.issues));
-
-    L.push('', '', `Dibuat dengan Catatan MoM · ${new Date().toLocaleString('id-ID')}`);
-    // CRLF supaya rapi di Notepad Windows; BOM supaya UTF-8 terbaca benar
-    return '﻿' + L.join('\r\n').replace(/\r?\n/g, '\r\n');
+  /* ---------------- Notepad ---------------- */
+  function exportTxt(m) {
+    const text = '﻿' + toPlain(m.mom).replace(/\n/g, '\r\n');
+    download(new Blob([text], { type: 'text/plain;charset=utf-8' }), filename(m, 'MoM', 'txt'));
   }
 
-  function exportTxt(mom) {
-    download(new Blob([toText(mom)], { type: 'text/plain;charset=utf-8' }), filename(mom, 'MoM', 'txt'));
+  function exportTranscript(m) {
+    const head = `TRANSKRIP — ${m.agenda || 'Meeting'}\r\n${Util.formatDateTime(m.datetime)}\r\nPeserta: ${m.attendees.join(', ') || '-'}\r\n\r\n`;
+    download(new Blob(['﻿' + head + m.transcript.replace(/\r?\n/g, '\r\n')], { type: 'text/plain;charset=utf-8' }),
+      filename(m, 'Transkrip', 'txt'));
   }
 
-  function exportTranscript(mom) {
-    const head = [
-      `TRANSKRIP — ${dash(mom.title)}`,
-      `Tanggal  : ${Util.formatDateTime(mom.datetime)}`,
-      `Platform : ${dash(mom.platform)}`,
-      `Peserta  : ${mom.participants.length ? mom.participants.join(', ') : '-'}`,
-      '',
-      ''
-    ].join('\n');
-    const text = '﻿' + (head + mom.transcript).replace(/\r?\n/g, '\r\n');
-    download(new Blob([text], { type: 'text/plain;charset=utf-8' }), filename(mom, 'Transkrip', 'txt'));
-  }
-
-  /* ---------------- Word (.docx) ---------------- */
-  async function exportDocx(mom) {
-    if (!window.docx) {
-      // Cadangan bila library gagal dimuat (offline / CDN diblokir)
-      exportDocFallback(mom);
-      return 'fallback';
-    }
-    const {
-      Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell,
-      WidthType, ShadingType, AlignmentType, BorderStyle
-    } = window.docx;
-
-    const ACCENT = '2457D6';
-    const SHADE = 'E8EEFB';
-    const border = { style: BorderStyle.SINGLE, size: 4, color: 'C9D1DE' };
-    const borders = { top: border, bottom: border, left: border, right: border };
-
-    const textParas = (text, opts = {}) => {
-      const lines = dash(text).split(/\r?\n/);
-      return lines.map(line => new Paragraph({
-        spacing: { after: 80 },
-        children: [new TextRun({ text: line, ...opts })]
-      }));
-    };
-
-    const heading = text => new Paragraph({
-      heading: HeadingLevel.HEADING_2,
-      spacing: { before: 280, after: 120 },
-      children: [new TextRun({ text, bold: true, color: ACCENT, size: 26 })]
-    });
-
-    const cell = (text, width, { bold = false, shade = false } = {}) => new TableCell({
-      width: { size: width, type: WidthType.DXA },
-      borders,
-      shading: shade ? { type: ShadingType.CLEAR, color: 'auto', fill: SHADE } : undefined,
-      margins: { top: 60, bottom: 60, left: 100, right: 100 },
-      children: dash(text).split(/\r?\n/).map(line =>
-        new Paragraph({ children: [new TextRun({ text: line, bold, size: 21 })] }))
-    });
-
-    // Lebar area tulis A4 dengan margin 2,54 cm ≈ 9026 DXA
-    const infoCols = [2200, 6826];
-    const infoRows = [
-      ['Judul', dash(mom.title)],
-      ['Tanggal & jam', Util.formatDateTime(mom.datetime)],
-      ['Platform', dash(mom.platform)],
-      ['Peserta', mom.participants.length ? mom.participants.join(', ') : '-']
-    ];
-    const infoTable = new Table({
-      width: { size: 9026, type: WidthType.DXA },
-      columnWidths: infoCols,
-      rows: infoRows.map(([k, v]) => new TableRow({
-        children: [cell(k, infoCols[0], { bold: true, shade: true }), cell(v, infoCols[1])]
-      }))
-    });
-
-    const children = [
-      new Paragraph({
-        alignment: AlignmentType.LEFT,
-        spacing: { after: 60 },
-        children: [new TextRun({ text: 'MINUTES OF MEETING', bold: true, size: 36, color: ACCENT })]
-      }),
-      new Paragraph({
-        spacing: { after: 240 },
-        children: [new TextRun({ text: dash(mom.title), size: 26, color: '555555' })]
-      }),
-      infoTable,
-      heading('Agenda'),
-      ...textParas(mom.agenda),
-      heading('Catatan Diskusi'),
-      ...textParas(mom.notes),
-      heading('Keputusan')
-    ];
-
-    const decisions = cleanList(mom.decisions);
-    if (decisions.length) {
-      decisions.forEach((d, i) => children.push(new Paragraph({
-        spacing: { after: 80 },
-        indent: { left: 360, hanging: 360 },
-        children: [new TextRun({ text: `${i + 1}.\t${d}` })]
-      })));
-    } else children.push(...textParas('-'));
-
-    children.push(heading('Action Items'));
-    const actions = cleanActions(mom.actions);
-    if (actions.length) {
-      const cols = [500, 3900, 1650, 1450, 1526];
-      const header = new TableRow({
-        tableHeader: true,
-        children: ['No', 'Tugas', 'PIC', 'Deadline', 'Status'].map((h, i) => cell(h, cols[i], { bold: true, shade: true }))
-      });
-      const rows = actions.map((a, i) => new TableRow({
-        children: [
-          cell(String(i + 1), cols[0]),
-          cell(a.task, cols[1]),
-          cell(a.pic, cols[2]),
-          cell(Util.formatDate(a.deadline), cols[3]),
-          cell(a.status, cols[4])
-        ]
-      }));
-      children.push(new Table({
-        width: { size: 9026, type: WidthType.DXA },
-        columnWidths: cols,
-        rows: [header, ...rows]
-      }));
-    } else children.push(...textParas('-'));
-
-    children.push(heading('Open Issues / Follow-up'), ...textParas(mom.issues));
-
-    const doc = new Document({
-      creator: 'Catatan MoM',
-      title: `MoM - ${dash(mom.title)}`,
-      styles: { default: { document: { run: { font: 'Calibri', size: 22 } } } },
-      sections: [{
-        properties: {
-          page: {
-            size: { width: 11906, height: 16838 },
-            margin: { top: 1440, bottom: 1440, left: 1440, right: 1440 }
-          }
-        },
-        children
-      }]
-    });
-
-    const blob = await Packer.toBlob(doc);
-    download(blob, filename(mom, 'MoM', 'docx'));
-    return 'docx';
-  }
-
-  /** Cadangan: HTML yang dibuka Word sebagai dokumen (.doc) */
-  function exportDocFallback(mom) {
-    const esc = s => dash(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\r?\n/g, '<br>');
-    const decisions = cleanList(mom.decisions);
-    const actions = cleanActions(mom.actions);
-    const html = `<html><head><meta charset="utf-8"><title>MoM</title>
-<style>body{font-family:Calibri,Arial;font-size:11pt}h1{color:#2457D6}h2{color:#2457D6;font-size:13pt;margin-top:18pt}
-table{border-collapse:collapse;width:100%}td,th{border:1px solid #C9D1DE;padding:4pt 6pt;vertical-align:top}th,.k{background:#E8EEFB;font-weight:bold}</style></head><body>
-<h1>MINUTES OF MEETING</h1>
-<table><tr><td class="k">Judul</td><td>${esc(mom.title)}</td></tr>
-<tr><td class="k">Tanggal &amp; jam</td><td>${esc(Util.formatDateTime(mom.datetime))}</td></tr>
-<tr><td class="k">Platform</td><td>${esc(mom.platform)}</td></tr>
-<tr><td class="k">Peserta</td><td>${esc(mom.participants.join(', '))}</td></tr></table>
-<h2>Agenda</h2><p>${esc(mom.agenda)}</p>
-<h2>Catatan Diskusi</h2><p>${esc(mom.notes)}</p>
-<h2>Keputusan</h2>${decisions.length ? '<ol>' + decisions.map(d => `<li>${esc(d)}</li>`).join('') + '</ol>' : '<p>-</p>'}
-<h2>Action Items</h2>${actions.length ? '<table><tr><th>No</th><th>Tugas</th><th>PIC</th><th>Deadline</th><th>Status</th></tr>' +
-      actions.map((a, i) => `<tr><td>${i + 1}</td><td>${esc(a.task)}</td><td>${esc(a.pic)}</td><td>${esc(Util.formatDate(a.deadline))}</td><td>${esc(a.status)}</td></tr>`).join('') +
-      '</table>' : '<p>-</p>'}
-<h2>Open Issues / Follow-up</h2><p>${esc(mom.issues)}</p></body></html>`;
-    download(new Blob(['﻿' + html], { type: 'application/msword' }), filename(mom, 'MoM', 'doc'));
-  }
-
-  /* ---------------- Prompt ringkasan untuk AI ---------------- */
-  function summaryPrompt(mom) {
-    return `Kamu adalah notulis profesional. Dari transkrip meeting di bawah, buatkan Minutes of Meeting (MoM) yang terstruktur dalam Bahasa Indonesia. Pertahankan istilah bisnis dalam English bila memang dipakai di meeting.
-
-Info meeting:
-- Judul: ${dash(mom.title)}
-- Tanggal: ${Util.formatDateTime(mom.datetime)}
-- Platform: ${dash(mom.platform)}
-- Peserta: ${mom.participants.length ? mom.participants.join(', ') : '-'}
-- Agenda: ${dash(mom.agenda)}
-
-Format output:
-1. Ringkasan (3–5 kalimat)
-2. Poin diskusi, dikelompokkan per topik
-3. Keputusan
-4. Action items dalam tabel: Tugas | PIC | Deadline. Jika PIC atau deadline tidak disebut, tulis "TBD".
-5. Open issues / follow-up
-
-Catatan penting:
-- Transkrip dibuat otomatis dan bisa salah dengar, terutama istilah English dan nama orang. Perbaiki berdasarkan konteks.
-- Jangan menambahkan informasi yang tidak ada di transkrip atau catatan.
-
-Catatan manual saya selama meeting:
-"""
-${dash(mom.notes)}
-"""
-
-Transkrip:
-"""
-${dash(mom.transcript)}
-"""`;
-  }
-
-  return { exportTxt, exportTranscript, exportDocx, summaryPrompt, download, filename };
-})();
-
-</script>
-  <script>
-/* ---- js/app.js ---- */
-/* =========================================================
-   app.js — menghubungkan UI dengan storage, recorder, transkrip, export
-   ========================================================= */
-
-(() => {
-  const $ = sel => document.querySelector(sel);
-  const STATUSES = ['Belum mulai', 'Proses', 'Selesai'];
-
-  let mom = null;          // MoM yang sedang dibuka
-  let dirty = false;
-  let saveTimer = null;
-  let lastAudio = null;    // { blob, ext, url }
-  let txStart = null;      // jam mulai transkrip (kalau tidak sedang merekam)
-  let recovered = [];      // sesi rekaman terputus yang ditemukan saat load
-
-  const els = {
-    title: $('#title'), datetime: $('#datetime'), platform: $('#platform'),
-    agenda: $('#agenda'), notes: $('#notes'), issues: $('#issues'), transcript: $('#transcript'),
-    tagsBox: $('#tagsBox'), participantInput: $('#participantInput'), peopleList: $('#peopleList'),
-    decisions: $('#decisions'), actions: $('#actions'),
-    saveStatus: $('#saveStatus'), toast: $('#toast'),
-    audioSource: $('#audioSource'), mixHint: $('#mixHint'),
-    recDot: $('#recDot'), recTimer: $('#recTimer'), levelMeter: $('#levelMeter'), recInfo: $('#recInfo'),
-    recPlayer: $('#recPlayer'),
-    btnRecStart: $('#btnRecStart'), btnRecPause: $('#btnRecPause'), btnRecStop: $('#btnRecStop'),
-    transcriptToggle: $('#transcriptToggle'), transcriptLang: $('#transcriptLang'),
-    transcriptStatus: $('#transcriptStatus'), interim: $('#interim'),
-    btnAudio: $('#btnAudio'),
-    historyDialog: $('#historyDialog'), historyList: $('#historyList'), historySearch: $('#historySearch'),
-    infoDialog: $('#infoDialog'),
-    browserWarning: $('#browserWarning'),
-    recoveryBanner: $('#recoveryBanner'), recoveryText: $('#recoveryText')
-  };
-
-  /* ---------------- Helper UI ---------------- */
-  let toastTimer;
-  function toast(msg, type = '') {
-    els.toast.textContent = msg;
-    els.toast.className = 'toast show ' + type;
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => { els.toast.className = 'toast ' + type; }, type === 'error' ? 5000 : 2800);
-  }
-
-  function el(tag, props = {}, ...children) {
-    const node = document.createElement(tag);
-    for (const [k, v] of Object.entries(props)) {
-      if (k === 'dataset') Object.assign(node.dataset, v);
-      else if (k.startsWith('aria-') || k === 'list' || k === 'data-label') node.setAttribute(k, v);
-      else node[k] = v;
-    }
-    children.flat().forEach(c => node.append(c));
-    return node;
-  }
-
-  function delButton(label, onClick) {
-    return el('button', { type: 'button', className: 'btn-del', textContent: '×', title: label, 'aria-label': label, onclick: onClick });
-  }
-
-  async function copyText(text) {
+  /* ---------------- Clipboard ---------------- */
+  async function copy(m) {
+    const plain = toPlain(m.mom);
+    const html = `<div>${toHTML(m.mom, true)}</div>`;
     try {
-      await navigator.clipboard.writeText(text);
+      if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write) {
+        await navigator.clipboard.write([new ClipboardItem({
+          'text/plain': new Blob([plain], { type: 'text/plain' }),
+          'text/html': new Blob([html], { type: 'text/html' })
+        })]);
+        return true;
+      }
+    } catch (e) { /* lanjut ke cara berikutnya */ }
+    try {
+      await navigator.clipboard.writeText(plain);
       return true;
     } catch (e) {
-      const ta = el('textarea', { value: text });
+      const ta = document.createElement('textarea');
+      ta.value = plain;
       ta.style.position = 'fixed';
       ta.style.opacity = '0';
       document.body.append(ta);
@@ -1566,275 +1494,682 @@ ${dash(mom.transcript)}
     }
   }
 
+  /* ---------------- Word (.docx) ---------------- */
+  async function exportDocx(m) {
+    if (!window.docx) {
+      // Cadangan: HTML yang dibuka Word sebagai dokumen
+      const html = `<html><head><meta charset="utf-8"><title>MoM</title></head><body>${toHTML(m.mom, true)}</body></html>`;
+      download(new Blob(['﻿' + html], { type: 'application/msword' }), filename(m, 'MoM', 'doc'));
+      return 'fallback';
+    }
+    const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, ShadingType, BorderStyle } = window.docx;
+    const ACCENT = '2457D6';
+    const border = { style: BorderStyle.SINGLE, size: 4, color: 'C9D1DE' };
+    const borders = { top: border, bottom: border, left: border, right: border };
+    const runs = (text, extra = {}) => inline(text).map(s => new TextRun({ text: s.text, bold: s.bold || extra.bold, size: extra.size, color: extra.color }));
+    const FULL = 9026; // lebar area tulis A4, margin 2,54 cm
+
+    const children = [];
+    parse(m.mom).forEach(b => {
+      if (b.type === 'h1') children.push(new Paragraph({ spacing: { after: 160 }, children: runs(b.text, { bold: true, size: 36, color: ACCENT }) }));
+      else if (b.type === 'h2') children.push(new Paragraph({ spacing: { before: 280, after: 100 }, children: runs(b.text, { bold: true, size: 26, color: ACCENT }) }));
+      else if (b.type === 'p') children.push(new Paragraph({ spacing: { after: 80 }, children: runs(b.text) }));
+      else if (b.type === 'li' || b.type === 'oli') {
+        children.push(new Paragraph({
+          spacing: { after: 60 },
+          indent: { left: 360, hanging: 360 },
+          children: [new TextRun({ text: b.type === 'li' ? '•\t' : `${b.n}.\t` }), ...runs(b.text)]
+        }));
+      } else if (b.type === 'table') {
+        const [head, ...body] = b.rows;
+        const n = head.length;
+        const isAction = n === 4 && /^no$/i.test(head[0]);
+        const widths = isAction ? [600, 4826, 1800, 1800] : Array(n).fill(Math.floor(FULL / n));
+        const mkCell = (text, w, isHead) => new TableCell({
+          width: { size: w, type: WidthType.DXA },
+          borders,
+          shading: isHead ? { type: ShadingType.CLEAR, color: 'auto', fill: 'E8EEFB' } : undefined,
+          margins: { top: 60, bottom: 60, left: 100, right: 100 },
+          children: [new Paragraph({ children: runs(text || '-', { bold: isHead, size: 21 }) })]
+        });
+        children.push(new Table({
+          width: { size: FULL, type: WidthType.DXA },
+          columnWidths: widths,
+          rows: [
+            new TableRow({ tableHeader: true, children: head.map((h, ci) => mkCell(h, widths[ci], true)) }),
+            ...body.map(r => new TableRow({ children: head.map((_, ci) => mkCell(r[ci], widths[ci], false)) }))
+          ]
+        }));
+        children.push(new Paragraph({ children: [] }));
+      }
+    });
+
+    const doc = new Document({
+      creator: 'Catatan MoM',
+      title: 'Minutes of Meeting',
+      styles: { default: { document: { run: { font: 'Calibri', size: 22 } } } },
+      sections: [{
+        properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 1440, bottom: 1440, left: 1440, right: 1440 } } },
+        children
+      }]
+    });
+    download(await Packer.toBlob(doc), filename(m, 'MoM', 'docx'));
+    return 'docx';
+  }
+
+  /* ---------------- PDF ---------------- */
+  // Font standar PDF hanya mendukung karakter Latin dasar
+  const pdfSafe = s => String(s)
+    .replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-')
+    .replace(/…/g, '...').replace(/•/g, '-').replace(/[^\x00-\xFF]/g, '');
+
+  function exportPdf(m) {
+    if (!window.jspdf || !window.jspdf.jsPDF) return printFallback(m);
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    const W = doc.internal.pageSize.getWidth();
+    const H = doc.internal.pageSize.getHeight();
+    const M = 54;
+    const maxW = W - M * 2;
+    const TEXT = [28, 35, 48], ACCENT = [36, 87, 214];
+    let y = M;
+
+    const ensure = h => { if (y + h > H - M) { doc.addPage(); y = M; } };
+
+    function rich(text, x, width, size, color = TEXT, forceBold = false) {
+      const words = [];
+      inline(pdfSafe(text)).forEach(s => s.text.split(/(\s+)/).forEach(w => { if (w) words.push({ w, b: s.bold || forceBold }); }));
+      doc.setFontSize(size);
+      const lh = size * 1.4;
+      const lines = [];
+      let line = [], lw = 0;
+      words.forEach(t => {
+        doc.setFont('helvetica', t.b ? 'bold' : 'normal');
+        const tw = doc.getTextWidth(t.w);
+        if (/^\s+$/.test(t.w)) { if (line.length) { line.push(t); lw += tw; } return; }
+        if (lw + tw > width && line.length) {
+          while (line.length && /^\s+$/.test(line[line.length - 1].w)) line.pop();
+          lines.push(line); line = []; lw = 0;
+        }
+        line.push(t); lw += tw;
+      });
+      if (line.length) lines.push(line);
+      lines.forEach(ln => {
+        ensure(lh);
+        let cx = x;
+        ln.forEach(t => {
+          doc.setFont('helvetica', t.b ? 'bold' : 'normal');
+          doc.setTextColor(...color);
+          doc.text(t.w, cx, y + size);
+          cx += doc.getTextWidth(t.w);
+        });
+        y += lh;
+      });
+    }
+
+    function table(rows) {
+      const [head, ...body] = rows;
+      const n = head.length;
+      const isAction = n === 4 && /^no$/i.test(head[0]);
+      const ratios = isAction ? [0.07, 0.53, 0.2, 0.2] : Array(n).fill(1 / n);
+      const widths = ratios.map(r => r * maxW);
+      const size = 9.5, lh = size * 1.35, pad = 5;
+      const drawRow = (cells, isHead) => {
+        doc.setFontSize(size);
+        doc.setFont('helvetica', isHead ? 'bold' : 'normal');
+        const wrapped = head.map((_, ci) => doc.splitTextToSize(pdfSafe(strip(cells[ci] || '-')), widths[ci] - pad * 2));
+        const rowH = Math.max(...wrapped.map(w => w.length)) * lh + pad * 2;
+        ensure(rowH);
+        let x = M;
+        wrapped.forEach((txt, ci) => {
+          if (isHead) { doc.setFillColor(232, 238, 251); doc.rect(x, y, widths[ci], rowH, 'F'); }
+          doc.setDrawColor(201, 209, 222);
+          doc.rect(x, y, widths[ci], rowH);
+          doc.setTextColor(...TEXT);
+          doc.text(txt, x + pad, y + pad + size);
+          x += widths[ci];
+        });
+        y += rowH;
+      };
+      drawRow(head, true);
+      body.forEach(r => drawRow(r, false));
+      y += 8;
+    }
+
+    parse(m.mom).forEach(b => {
+      if (b.type === 'h1') { rich(b.text, M, maxW, 20, ACCENT, true); y += 6; }
+      else if (b.type === 'h2') { y += 10; ensure(40); rich(b.text, M, maxW, 13, ACCENT, true); y += 2; }
+      else if (b.type === 'p') { rich(b.text, M, maxW, 10.5); y += 2; }
+      else if (b.type === 'li' || b.type === 'oli') {
+        ensure(15);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(10.5); doc.setTextColor(...TEXT);
+        doc.text(b.type === 'li' ? '-' : `${b.n}.`, M + 4, y + 10.5);
+        rich(b.text, M + 18, maxW - 18, 10.5);
+        y += 1;
+      } else if (b.type === 'table') { y += 2; table(b.rows); }
+    });
+
+    // Nomor halaman
+    const pages = doc.getNumberOfPages();
+    for (let p = 1; p <= pages; p++) {
+      doc.setPage(p);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(150, 150, 150);
+      doc.text(`${p} / ${pages}`, W - M, H - 24, { align: 'right' });
+    }
+    download(doc.output('blob'), filename(m, 'MoM', 'pdf'));
+    return 'pdf';
+  }
+
+  /** Cadangan bila library PDF gagal dimuat: buka dialog print → Save as PDF */
+  function printFallback(m) {
+    const w = window.open('', '_blank');
+    if (!w) return 'blocked';
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${esc(filename(m, 'MoM', 'pdf'))}</title>
+<style>body{margin:24mm 20mm}@page{size:A4;margin:0}</style></head><body>${toHTML(m.mom, true)}</body></html>`);
+    w.document.close();
+    w.focus();
+    setTimeout(() => w.print(), 400);
+    return 'print';
+  }
+
+  return { parse, toHTML, toPlain, exportTxt, exportTranscript, exportDocx, exportPdf, copy, download, filename };
+})();
+
+</script>
+  <script>
+/* ---- js/app.js ---- */
+/* =========================================================
+   app.js — alur: Mulai → rekam + transkrip live → Stop → MoM otomatis
+   ========================================================= */
+
+(() => {
+  const $ = s => document.querySelector(s);
+
+  let rec = null;            // meeting yang sedang dibuka
+  let dirty = false;
+  let saveTimer = null;
+  let lastAudio = null;      // { blob, ext, url }
+  let editing = false;
+  let generating = false;
+  let pendingGenerate = false;
+  let recovered = [];
+
+  const els = {
+    agenda: $('#agenda'), datetime: $('#datetime'),
+    tagsBox: $('#tagsBox'), attendeeInput: $('#attendeeInput'),
+    btnRec: $('#btnRec'), btnRecLabel: $('#btnRecLabel'), btnPause: $('#btnPause'),
+    recDot: $('#recDot'), recTimer: $('#recTimer'), levelMeter: $('#levelMeter'), recStatus: $('#recStatus'),
+    audioSource: $('#audioSource'), speechLang: $('#speechLang'), mixHint: $('#mixHint'),
+    tabs: document.querySelectorAll('.tab'), panelMom: $('#panelMom'), panelTranscript: $('#panelTranscript'),
+    momView: $('#momView'), momEdit: $('#momEdit'), momStatus: $('#momStatus'),
+    btnEdit: $('#btnEdit'), btnRegenerate: $('#btnRegenerate'),
+    transcript: $('#transcript'), interim: $('#interim'), player: $('#player'),
+    btnAudio: $('#btnAudio'),
+    saveStatus: $('#saveStatus'), toast: $('#toast'), banner: $('#banner'),
+    historyDialog: $('#historyDialog'), historyList: $('#historyList'), historySearch: $('#historySearch'),
+    settingsDialog: $('#settingsDialog'), apiKey: $('#apiKey'), model: $('#model'), momLang: $('#momLang'), aiFields: $('#aiFields'),
+    recoveryBanner: $('#recoveryBanner'), recoveryText: $('#recoveryText')
+  };
+
+  /* ---------------- Helper ---------------- */
+  let toastTimer;
+  function toast(msg, type = '') {
+    els.toast.textContent = msg;
+    els.toast.className = 'toast show ' + type;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { els.toast.className = 'toast ' + type; }, type === 'error' ? 5000 : 2800);
+  }
+
+  function el(tag, props = {}, ...children) {
+    const n = document.createElement(tag);
+    for (const [k, v] of Object.entries(props)) {
+      if (k.startsWith('aria-')) n.setAttribute(k, v); else n[k] = v;
+    }
+    children.flat().forEach(c => n.append(c));
+    return n;
+  }
+
+  function setRecStatus(msg, type = '') {
+    els.recStatus.textContent = msg;
+    els.recStatus.className = 'hint ' + type;
+  }
+
+  function setMomStatus(msg, type = '', spinner = false) {
+    if (!msg) { els.momStatus.hidden = true; return; }
+    els.momStatus.hidden = false;
+    els.momStatus.className = 'status-line ' + type;
+    els.momStatus.innerHTML = '';
+    if (spinner) els.momStatus.append(el('span', { className: 'spinner' }));
+    els.momStatus.append(el('span', { textContent: msg }));
+  }
+
   /* ---------------- Simpan otomatis ---------------- */
   function markDirty() {
     dirty = true;
     els.saveStatus.textContent = 'Menyimpan…';
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => saveNow(), 1200);
+    saveTimer = setTimeout(() => saveNow(), 1000);
   }
 
   function saveNow(force = false) {
     clearTimeout(saveTimer);
-    if (!force && Store.isEmpty(mom) && !Store.get(mom.id)) {
+    if (!force && Store.isEmpty(rec) && !Store.get(rec.id)) {
       dirty = false;
       els.saveStatus.textContent = 'Draft baru';
       return;
     }
     try {
-      Store.save(mom);
+      Store.save(rec);
       dirty = false;
       els.saveStatus.textContent = 'Tersimpan otomatis · ' + new Date().toLocaleTimeString('id-ID');
     } catch (e) {
-      els.saveStatus.textContent = 'Gagal menyimpan — penyimpanan browser mungkin penuh';
-      toast('Gagal menyimpan. Export file Anda sekarang.', 'error');
+      els.saveStatus.textContent = 'Gagal menyimpan — penyimpanan browser penuh?';
+      toast('Gagal menyimpan. Export MoM Anda sekarang.', 'error');
     }
   }
   setInterval(() => { if (dirty) saveNow(); }, 5000);
 
-  /* ---------------- Form sederhana ---------------- */
-  const simpleFields = ['title', 'datetime', 'platform', 'agenda', 'notes', 'issues', 'transcript'];
-  simpleFields.forEach(f => {
+  /* ---------------- Info meeting ---------------- */
+  ['agenda', 'datetime'].forEach(f => {
     ['input', 'change'].forEach(evt => els[f].addEventListener(evt, () => {
-      if (mom[f] === els[f].value) return;
-      mom[f] = els[f].value;
+      if (rec[f] === els[f].value) return;
+      rec[f] = els[f].value;
       markDirty();
     }));
   });
 
-  function loadIntoForm() {
-    simpleFields.forEach(f => { els[f].value = mom[f] || ''; });
-    renderTags();
-    renderDecisions();
-    renderActions();
-    updatePeopleList();
-    els.interim.textContent = '';
-  }
-
-  /* ---------------- Peserta (tag) ---------------- */
-  function addParticipants(raw) {
-    const names = raw.split(/[,;\n]/).map(s => s.trim()).filter(Boolean);
+  function addAttendees(raw) {
     let added = false;
-    names.forEach(n => {
-      if (!mom.participants.some(p => p.toLowerCase() === n.toLowerCase())) {
-        mom.participants.push(n);
-        added = true;
-      }
+    raw.split(/[,;\n]/).map(s => s.trim()).filter(Boolean).forEach(n => {
+      if (!rec.attendees.some(a => a.toLowerCase() === n.toLowerCase())) { rec.attendees.push(n); added = true; }
     });
-    if (added) { renderTags(); updatePeopleList(); markDirty(); }
+    if (added) { renderTags(); markDirty(); }
   }
 
   function renderTags() {
     els.tagsBox.querySelectorAll('.tag').forEach(n => n.remove());
-    mom.participants.forEach((p, i) => {
-      const tag = el('span', { className: 'tag' }, p,
+    rec.attendees.forEach((a, i) => {
+      els.tagsBox.insertBefore(el('span', { className: 'tag' }, a,
         el('button', {
-          type: 'button', textContent: '×', 'aria-label': 'Hapus ' + p,
-          onclick: () => { mom.participants.splice(i, 1); renderTags(); updatePeopleList(); markDirty(); }
-        }));
-      els.tagsBox.insertBefore(tag, els.participantInput);
+          type: 'button', textContent: '×', 'aria-label': 'Hapus ' + a,
+          onclick: () => { rec.attendees.splice(i, 1); renderTags(); markDirty(); }
+        })), els.attendeeInput);
     });
   }
 
-  function updatePeopleList() {
-    els.peopleList.innerHTML = '';
-    mom.participants.forEach(p => els.peopleList.append(el('option', { value: p })));
-  }
-
-  els.participantInput.addEventListener('keydown', e => {
-    const input = els.participantInput;
+  els.attendeeInput.addEventListener('keydown', e => {
+    const inp = els.attendeeInput;
     if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault();
-      addParticipants(input.value);
-      input.value = '';
-    } else if (e.key === 'Backspace' && !input.value && mom.participants.length) {
-      mom.participants.pop();
-      renderTags(); updatePeopleList(); markDirty();
+      addAttendees(inp.value);
+      inp.value = '';
+    } else if (e.key === 'Backspace' && !inp.value && rec.attendees.length) {
+      rec.attendees.pop(); renderTags(); markDirty();
     }
   });
-  els.participantInput.addEventListener('blur', () => {
-    if (els.participantInput.value.trim()) {
-      addParticipants(els.participantInput.value);
-      els.participantInput.value = '';
-    }
+  els.attendeeInput.addEventListener('blur', () => {
+    if (els.attendeeInput.value.trim()) { addAttendees(els.attendeeInput.value); els.attendeeInput.value = ''; }
   });
-  els.participantInput.addEventListener('paste', e => {
-    const text = (e.clipboardData || window.clipboardData).getData('text');
-    if (/[,;\n]/.test(text)) {
-      e.preventDefault();
-      addParticipants(text);
-    }
+  els.attendeeInput.addEventListener('paste', e => {
+    const t = (e.clipboardData || window.clipboardData).getData('text');
+    if (/[,;\n]/.test(t)) { e.preventDefault(); addAttendees(t); }
   });
-  els.tagsBox.addEventListener('click', e => { if (e.target === els.tagsBox) els.participantInput.focus(); });
+  els.tagsBox.addEventListener('click', e => { if (e.target === els.tagsBox) els.attendeeInput.focus(); });
 
-  /* ---------------- Keputusan ---------------- */
-  function renderDecisions() {
-    els.decisions.innerHTML = '';
-    if (!mom.decisions.length) {
-      els.decisions.append(el('li', { className: 'empty', textContent: 'Belum ada keputusan.' }));
+  /* ---------------- Tab hasil ---------------- */
+  function switchTab(name) {
+    els.tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+    els.panelMom.hidden = name !== 'mom';
+    els.panelTranscript.hidden = name !== 'transcript';
+    els.btnEdit.hidden = name !== 'mom';
+    els.btnRegenerate.hidden = name !== 'mom';
+  }
+  els.tabs.forEach(t => t.addEventListener('click', () => switchTab(t.dataset.tab)));
+
+  /* ---------------- Tampilan MoM ---------------- */
+  function renderMom() {
+    if (rec.mom.trim()) {
+      els.momView.innerHTML = Exporter.toHTML(rec.mom);
       return;
     }
-    mom.decisions.forEach((d, i) => {
-      const input = el('input', { type: 'text', value: d, placeholder: 'Tulis keputusan…' });
-      input.addEventListener('input', () => { mom.decisions[i] = input.value; markDirty(); });
-      input.addEventListener('keydown', e => {
-        if (e.key === 'Enter') { e.preventDefault(); addDecision(i + 1); }
-      });
-      const del = delButton('Hapus keputusan', () => { mom.decisions.splice(i, 1); renderDecisions(); markDirty(); });
-      els.decisions.append(el('li', { className: 'row' }, el('div', { className: 'row-inner' }, input, del)));
-    });
-  }
-
-  function addDecision(at = mom.decisions.length) {
-    mom.decisions.splice(at, 0, '');
-    renderDecisions();
-    const input = els.decisions.children[at].querySelector('input');
-    if (input) input.focus();
-    markDirty();
-  }
-  $('#btnAddDecision').addEventListener('click', () => addDecision());
-
-  /* ---------------- Action items ---------------- */
-  function renderActions() {
-    els.actions.innerHTML = '';
-    if (!mom.actions.length) {
-      els.actions.append(el('tr', {}, el('td', { colSpan: 5, className: 'empty-cell', textContent: 'Belum ada action item.' })));
-      return;
+    const st = Recorder.state();
+    let html;
+    if (st === 'recording' || st === 'paused') {
+      html = '<span class="big">⏺️</span>Sedang merekam… transkrip berjalan di tab <b>Transkrip</b>.<br>MoM dibuat otomatis setelah klik <b>Stop</b>.';
+    } else if (rec.transcript.trim()) {
+      html = '<span class="big">📝</span>Transkrip sudah ada. Klik <b>↻ Buat ulang</b> untuk membuat MoM.';
+    } else {
+      html = '<span class="big">🎙️</span>Klik <b>Mulai</b> saat meeting dimulai.<br>Setelah klik <b>Stop</b>, transkrip dan MoM otomatis muncul di sini.';
     }
-    mom.actions.forEach((a, i) => {
-      const bind = (node, key) => {
-        node.addEventListener('input', () => { mom.actions[i][key] = node.value; markDirty(); });
-        node.addEventListener('change', () => { mom.actions[i][key] = node.value; markDirty(); });
-        return node;
-      };
-      const task = bind(el('input', { type: 'text', value: a.task || '', placeholder: 'Apa yang harus dikerjakan' }), 'task');
-      const pic = bind(el('input', { type: 'text', value: a.pic || '', placeholder: 'Nama', list: 'peopleList' }), 'pic');
-      const deadline = bind(el('input', { type: 'date', value: a.deadline || '' }), 'deadline');
-      const status = bind(el('select', {}, STATUSES.map(s => el('option', { value: s, textContent: s }))), 'status');
-      status.value = a.status || STATUSES[0];
-      const del = delButton('Hapus action item', () => { mom.actions.splice(i, 1); renderActions(); markDirty(); });
-      els.actions.append(el('tr', {},
-        el('td', { 'data-label': 'Tugas' }, task),
-        el('td', { 'data-label': 'PIC' }, pic),
-        el('td', { 'data-label': 'Deadline' }, deadline),
-        el('td', { 'data-label': 'Status' }, status),
-        el('td', {}, del)
-      ));
-    });
+    els.momView.innerHTML = `<div class="placeholder">${html}</div>`;
   }
 
-  $('#btnAddAction').addEventListener('click', () => {
-    mom.actions.push({ task: '', pic: '', deadline: '', status: STATUSES[0] });
-    renderActions();
-    const rows = els.actions.querySelectorAll('tr');
-    rows[rows.length - 1].querySelector('input').focus();
+  function setEditing(on) {
+    editing = on;
+    if (on) {
+      els.momEdit.value = rec.mom.trim() ? rec.mom : MomGen.header(rec, Settings.get().momLang) + '\n\n## Ringkasan\n\n## Keputusan\n- \n\n## Action Items\n| No | Tugas | PIC | Deadline |\n|---|---|---|---|\n| 1 |  |  |  |\n';
+      rec.mom = els.momEdit.value;
+    } else {
+      rec.mom = els.momEdit.value;
+      renderMom();
+    }
+    els.momEdit.hidden = !on;
+    els.momView.hidden = on;
+    els.btnEdit.textContent = on ? '✓ Selesai edit' : '✎ Edit';
+    if (on) els.momEdit.focus();
     markDirty();
+  }
+
+  els.btnEdit.addEventListener('click', () => setEditing(!editing));
+  els.momEdit.addEventListener('input', () => { rec.mom = els.momEdit.value; rec.momSource = 'manual'; markDirty(); });
+
+  async function generateMom() {
+    if (generating) return;
+    if (editing) setEditing(false);
+    const s = Settings.get();
+    generating = true;
+    els.btnRegenerate.disabled = true;
+    updateRecUI();
+    switchTab('mom');
+    setMomStatus(s.mode === 'ai' && s.apiKey ? 'Claude sedang menyusun MoM dari transkrip…' : 'Menyusun MoM…', '', true);
+    try {
+      const r = await MomGen.generate(rec, s);
+      rec.mom = r.md;
+      rec.momSource = r.source;
+      saveNow(true);
+      renderMom();
+      if (r.error) {
+        setMomStatus(`Claude AI gagal: ${r.error} MoM dibuat dengan mode otomatis.`, 'warn');
+      } else if (r.source === 'auto') {
+        setMomStatus(rec.transcript.trim()
+          ? 'Ini draft otomatis tanpa AI dari kata kunci transkrip. Rapikan lewat ✎ Edit, atau aktifkan Claude AI di ⚙️ Pengaturan untuk MoM yang lebih rapi.'
+          : 'Transkrip kosong. Cek izin mikrofon dan pakai Chrome/Edge, atau isi MoM manual lewat ✎ Edit.', 'warn');
+      } else {
+        setMomStatus('MoM dibuat dengan Claude AI. Cek kembali sebelum dibagikan.');
+      }
+    } catch (e) {
+      setMomStatus('Gagal membuat MoM: ' + e.message, 'warn');
+    } finally {
+      generating = false;
+      els.btnRegenerate.disabled = false;
+      updateRecUI();
+    }
+  }
+
+  els.btnRegenerate.addEventListener('click', () => {
+    if (Recorder.state() !== 'idle') return toast('Stop rekaman dulu.');
+    if (!rec.transcript.trim()) return toast('Transkrip masih kosong.');
+    if (rec.momSource === 'manual' && rec.mom.trim() && !confirm('MoM yang sudah diedit akan diganti. Lanjutkan?')) return;
+    generateMom();
   });
 
-  /* ---------------- Buka / ganti MoM ---------------- */
-  async function openMom(m) {
-    if (Transcriber.isRunning()) {
+  /* ---------------- Transkrip ---------------- */
+  els.transcript.addEventListener('input', () => { rec.transcript = els.transcript.value; markDirty(); });
+
+  Transcriber.on('final', text => {
+    const ta = els.transcript;
+    const line = `[${Util.formatClock(Recorder.elapsed())}] ${text}\n`;
+    const prefix = ta.value && !ta.value.endsWith('\n') ? '\n' : '';
+    const nearBottom = ta.scrollHeight - ta.scrollTop - ta.clientHeight < 40;
+    ta.setRangeText(prefix + line, ta.value.length, ta.value.length, 'preserve');
+    if (nearBottom) ta.scrollTop = ta.scrollHeight;
+    rec.transcript = ta.value;
+    markDirty();
+  });
+  Transcriber.on('interim', t => { els.interim.textContent = t ? '… ' + t : ''; });
+  Transcriber.on('status', (msg, type) => {
+    if (Recorder.state() === 'idle') return;
+    if (type === 'error') setRecStatus('Merekam · ' + msg, 'error');
+    else if (type === 'ok') setRecStatus('Merekam · transkrip live aktif', 'ok');
+  });
+  Transcriber.on('stopped', () => { els.interim.textContent = ''; });
+
+  /* ---------------- Rekaman ---------------- */
+  function updateRecUI() {
+    const st = Recorder.state();
+    const active = st === 'recording' || st === 'paused';
+    els.btnRec.classList.toggle('recording', active);
+    els.btnRecLabel.textContent = active ? 'Stop' : 'Mulai';
+    els.btnRec.disabled = st === 'stopping' || generating;
+    els.btnPause.hidden = !active;
+    els.btnPause.textContent = st === 'paused' ? '▶ Lanjut' : '❚❚ Jeda';
+    els.recDot.className = 'dot ' + (st === 'recording' ? 'recording' : st === 'paused' ? 'paused' : '');
+    els.audioSource.disabled = active;
+    els.speechLang.disabled = active;
+  }
+
+  async function startMeeting() {
+    if (editing) setEditing(false);
+    if ((rec.transcript.trim() || rec.mom.trim() || lastAudio) &&
+      !confirm('Meeting ini sudah punya rekaman / transkrip / MoM. Rekam ulang akan menggantinya.\n\nUntuk meeting baru, klik Batal lalu "+ Baru".')) return;
+
+    els.btnRec.disabled = true;
+    setRecStatus('Meminta izin mikrofon…');
+    try {
+      rec.transcript = ''; rec.mom = ''; rec.momSource = ''; rec.duration = 0;
+      els.transcript.value = '';
+      saveNow(true);
+      await Recorder.start(els.audioSource.value, rec.id);
+      try { await AudioDB.deleteForMom(rec.id, Recorder.sessionId()); } catch (e) {}
+      setLastAudio(null);
+      setMomStatus('');
+      if (Transcriber.supported()) {
+        Transcriber.start(els.speechLang.value);
+        setRecStatus('Merekam · menyalakan transkrip live…');
+      } else {
+        setRecStatus('Merekam · browser ini tidak mendukung transkrip live (pakai Chrome/Edge).', 'error');
+      }
+      switchTab('transcript');
+      renderMom();
+    } catch (e) {
+      setRecStatus(e.message || 'Gagal mulai merekam.', 'error');
+      toast(e.message || 'Gagal mulai merekam.', 'error');
+    } finally {
+      updateRecUI();
+    }
+  }
+
+  function stopMeeting() {
+    pendingGenerate = true;
+    Transcriber.stop();
+    setRecStatus('Menyimpan rekaman…');
+    Recorder.stop();
+    updateRecUI();
+  }
+
+  els.btnRec.addEventListener('click', () => {
+    const st = Recorder.state();
+    if (st === 'idle') startMeeting();
+    else if (st === 'recording' || st === 'paused') stopMeeting();
+  });
+
+  els.btnPause.addEventListener('click', () => {
+    if (Recorder.state() === 'recording') {
+      Recorder.pause();
       Transcriber.stop();
-      els.transcriptToggle.checked = false;
+      setRecStatus('Dijeda.');
+    } else if (Recorder.state() === 'paused') {
+      Recorder.resume();
+      if (Transcriber.supported()) Transcriber.start(els.speechLang.value);
+      setRecStatus('Merekam…');
     }
-    mom = Store.normalize(m);
-    Store.setCurrent(mom.id);
-    loadIntoForm();
-    els.saveStatus.textContent = Store.get(mom.id) ? 'Tersimpan' : 'Draft baru';
-    await loadAudioForMom();
-  }
+  });
+
+  Recorder.on('state', updateRecUI);
+  Recorder.on('warning', msg => toast(msg, 'error'));
+  Recorder.on('stopped', ({ blob, session, ext }) => {
+    setLastAudio(blob, ext);
+    rec.duration = session.duration || 0;
+    els.recTimer.textContent = '00:00:00';
+    els.interim.textContent = '';
+    setRecStatus('Rekaman tersimpan. Klik Mulai untuk merekam lagi, atau "+ Baru" untuk meeting baru.');
+    updateRecUI();
+    if (pendingGenerate) {
+      pendingGenerate = false;
+      setMomStatus('Menyelesaikan transkrip…', '', true);
+      switchTab('mom');
+      // beri waktu hasil transkrip terakhir masuk
+      setTimeout(generateMom, 1500);
+    }
+  });
+
+  els.audioSource.addEventListener('change', () => {
+    els.mixHint.hidden = els.audioSource.value !== 'mix';
+    Settings.set({ audioSource: els.audioSource.value });
+  });
+  els.speechLang.addEventListener('change', () => Settings.set({ speechLang: els.speechLang.value }));
 
   function setLastAudio(blob, ext) {
     if (lastAudio && lastAudio.url) URL.revokeObjectURL(lastAudio.url);
     if (!blob || !blob.size) {
       lastAudio = null;
-      els.recPlayer.hidden = true;
-      els.recPlayer.removeAttribute('src');
+      els.player.hidden = true;
+      els.player.removeAttribute('src');
       els.btnAudio.disabled = true;
-      els.recInfo.textContent = '';
       return;
     }
     const url = URL.createObjectURL(blob);
     lastAudio = { blob, ext, url };
-    els.recPlayer.src = url;
-    els.recPlayer.hidden = false;
+    els.player.src = url;
+    els.player.hidden = false;
     els.btnAudio.disabled = false;
-    els.recInfo.textContent = `Rekaman tersimpan (${(blob.size / 1048576).toFixed(1)} MB).`;
   }
 
-  async function loadAudioForMom() {
+  async function loadAudio() {
     setLastAudio(null);
     try {
-      const s = await AudioDB.latestForMom(mom.id);
+      const s = await AudioDB.latestForMom(rec.id);
       if (s) setLastAudio(await AudioDB.getBlob(s), Recorder.extFor(s.mime));
-    } catch (e) { /* IndexedDB tidak tersedia */ }
+    } catch (e) { /* abaikan */ }
+  }
+
+  // Timer + level suara
+  const meterCtx = els.levelMeter.getContext('2d');
+  let smooth = 0;
+  function tick() {
+    const st = Recorder.state();
+    if (st === 'recording' || st === 'paused') els.recTimer.textContent = Util.formatClock(Recorder.elapsed(), true);
+    smooth = smooth * 0.7 + Recorder.level() * 0.3;
+    const w = els.levelMeter.width, h = els.levelMeter.height;
+    const css = getComputedStyle(document.documentElement);
+    meterCtx.clearRect(0, 0, w, h);
+    const bars = 12, gap = 2, bw = (w - gap * (bars - 1)) / bars, lit = Math.round(smooth * bars);
+    for (let i = 0; i < bars; i++) {
+      meterCtx.fillStyle = i < lit ? css.getPropertyValue(i > bars * 0.8 ? '--danger' : '--ok') : css.getPropertyValue('--border');
+      meterCtx.fillRect(i * (bw + gap), 0, bw, h);
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  /* ---------------- Export ---------------- */
+  function requireMom() {
+    if (editing) rec.mom = els.momEdit.value;
+    if (!rec.mom.trim()) { toast('MoM belum ada. Rekam meeting dulu, atau isi lewat ✎ Edit.'); return false; }
+    saveNow();
+    return true;
+  }
+
+  $('#btnWord').addEventListener('click', async () => {
+    if (!requireMom()) return;
+    try {
+      const k = await Exporter.exportDocx(rec);
+      toast(k === 'fallback' ? 'Library Word gagal dimuat, file dibuat sebagai .doc (tetap bisa dibuka di Word).' : 'File Word di-download.');
+    } catch (e) { toast('Gagal membuat Word: ' + e.message, 'error'); }
+  });
+  $('#btnPdf').addEventListener('click', () => {
+    if (!requireMom()) return;
+    try {
+      const k = Exporter.exportPdf(rec);
+      if (k === 'print') toast('Pilih "Save as PDF" di dialog print.');
+      else if (k === 'blocked') toast('Pop-up diblokir browser. Izinkan pop-up lalu coba lagi.', 'error');
+      else toast('File PDF di-download.');
+    } catch (e) { toast('Gagal membuat PDF: ' + e.message, 'error'); }
+  });
+  $('#btnTxt').addEventListener('click', () => {
+    if (!requireMom()) return;
+    Exporter.exportTxt(rec);
+    toast('File Notepad di-download.');
+  });
+  $('#btnCopy').addEventListener('click', async () => {
+    if (!requireMom()) return;
+    const ok = await Exporter.copy(rec);
+    toast(ok ? 'MoM disalin. Tinggal paste ke email, WhatsApp, atau Word.' : 'Gagal menyalin ke clipboard.', ok ? '' : 'error');
+  });
+  els.btnAudio.addEventListener('click', () => {
+    if (lastAudio) Exporter.download(lastAudio.blob, Exporter.filename(rec, 'Rekaman', lastAudio.ext));
+  });
+  $('#btnTranscriptTxt').addEventListener('click', () => {
+    if (!rec.transcript.trim()) return toast('Transkrip masih kosong.');
+    Exporter.exportTranscript(rec);
+  });
+
+  /* ---------------- Buka / baru / riwayat ---------------- */
+  async function openMeeting(m) {
+    if (editing) setEditing(false);
+    rec = Store.normalize(m);
+    Store.setCurrent(rec.id);
+    els.agenda.value = rec.agenda;
+    els.datetime.value = rec.datetime;
+    els.transcript.value = rec.transcript;
+    els.interim.textContent = '';
+    renderTags();
+    renderMom();
+    setMomStatus('');
+    switchTab(rec.mom.trim() || !rec.transcript.trim() ? 'mom' : 'transcript');
+    els.saveStatus.textContent = Store.get(rec.id) ? 'Tersimpan' : 'Draft baru';
+    await loadAudio();
   }
 
   function blockIfRecording() {
-    if (Recorder.state() !== 'idle') {
-      toast('Hentikan rekaman dulu sebelum pindah MoM.', 'error');
-      return true;
-    }
+    if (Recorder.state() !== 'idle') { toast('Stop rekaman dulu.', 'error'); return true; }
     return false;
   }
 
   $('#btnNew').addEventListener('click', async () => {
     if (blockIfRecording()) return;
     if (dirty) saveNow();
-    await openMom(Store.blank());
-    els.title.focus();
-    toast('MoM baru dibuat.');
+    await openMeeting(Store.blank());
+    setRecStatus('Siap merekam. Klik Mulai saat meeting dimulai.');
+    els.agenda.focus();
+    toast('Meeting baru.');
   });
 
-  /* ---------------- Riwayat ---------------- */
   function renderHistory() {
     const q = els.historySearch.value.trim().toLowerCase();
-    const items = Store.list().filter(m =>
-      !q || (m.title || '').toLowerCase().includes(q) || (m.participants || []).join(' ').toLowerCase().includes(q));
+    const items = Store.list().filter(m => !q || (m.agenda || '').toLowerCase().includes(q) || (m.attendees || []).join(' ').toLowerCase().includes(q));
     els.historyList.innerHTML = '';
     if (!items.length) {
-      els.historyList.append(el('li', { className: 'empty', textContent: q ? 'Tidak ada yang cocok.' : 'Belum ada MoM tersimpan.' }));
+      els.historyList.append(el('li', { className: 'empty', textContent: q ? 'Tidak ada yang cocok.' : 'Belum ada meeting tersimpan.' }));
       return;
     }
     items.forEach(m => {
-      const isCurrent = mom && m.id === mom.id;
-      const meta = el('div', { className: 'meta' },
-        el('strong', { textContent: m.title || '(Tanpa judul)' }),
-        el('small', { textContent: `${Util.formatDateTime(m.datetime)} · ${m.platform}${isCurrent ? ' · sedang dibuka' : ''}` }));
-      const actions = el('div', { className: 'item-actions' },
-        el('button', {
-          type: 'button', className: 'btn small', textContent: 'Buka', disabled: isCurrent,
-          onclick: async () => {
-            if (blockIfRecording()) return;
-            if (dirty) saveNow();
-            await openMom(Store.get(m.id));
-            els.historyDialog.close();
-          }
-        }),
-        el('button', {
-          type: 'button', className: 'btn small', textContent: 'Duplikat',
-          onclick: async () => {
-            if (blockIfRecording()) return;
-            if (dirty) saveNow();
-            await openMom(Store.duplicate(Store.normalize(Store.get(m.id))));
-            saveNow(true);
-            els.historyDialog.close();
-            toast('Duplikat dibuat sebagai MoM baru.');
-          }
-        }),
-        el('button', {
-          type: 'button', className: 'btn small danger', textContent: 'Hapus',
-          onclick: async () => {
-            if (isCurrent && Recorder.state() !== 'idle') return toast('Sedang merekam MoM ini.', 'error');
-            if (!confirm(`Hapus "${m.title || '(Tanpa judul)'}" beserta rekamannya? Tindakan ini tidak bisa dibatalkan.`)) return;
-            Store.remove(m.id);
-            try { await AudioDB.deleteForMom(m.id); } catch (e) {}
-            if (isCurrent) await openMom(Store.blank());
-            renderHistory();
-            toast('MoM dihapus.');
-          }
-        }));
-      els.historyList.append(el('li', { className: isCurrent ? 'current' : '' }, meta, actions));
+      const isCur = m.id === rec.id;
+      els.historyList.append(el('li', { className: isCur ? 'current' : '' },
+        el('div', { className: 'meta' },
+          el('strong', { textContent: m.agenda || '(Tanpa agenda)' }),
+          el('small', { textContent: `${Util.formatDateTime(m.datetime)}${m.mom ? ' · MoM ✓' : ''}${isCur ? ' · sedang dibuka' : ''}` })),
+        el('div', { className: 'item-actions' },
+          el('button', {
+            type: 'button', className: 'btn small', textContent: 'Buka', disabled: isCur,
+            onclick: async () => {
+              if (blockIfRecording()) return;
+              if (dirty) saveNow();
+              await openMeeting(Store.get(m.id));
+              els.historyDialog.close();
+            }
+          }),
+          el('button', {
+            type: 'button', className: 'btn small danger-text', textContent: 'Hapus',
+            onclick: async () => {
+              if (isCur && Recorder.state() !== 'idle') return toast('Sedang merekam meeting ini.', 'error');
+              if (!confirm(`Hapus "${m.agenda || '(Tanpa agenda)'}" beserta rekamannya?`)) return;
+              Store.remove(m.id);
+              try { await AudioDB.deleteForMom(m.id); } catch (e) {}
+              if (isCur) await openMeeting(Store.blank());
+              renderHistory();
+            }
+          }))));
     });
   }
 
@@ -1845,276 +2180,100 @@ ${dash(mom.transcript)}
     els.historyDialog.showModal();
   });
   els.historySearch.addEventListener('input', renderHistory);
-  $('#btnInfo').addEventListener('click', () => els.infoDialog.showModal());
 
-  // Klik backdrop untuk menutup dialog
-  [els.historyDialog, els.infoDialog].forEach(d => d.addEventListener('click', e => {
-    if (e.target === d) d.close();
-  }));
+  /* ---------------- Pengaturan ---------------- */
+  function syncAiFields() {
+    const mode = document.querySelector('input[name="mode"]:checked');
+    els.aiFields.style.opacity = mode && mode.value === 'ai' ? '1' : '.5';
+  }
+  document.querySelectorAll('input[name="mode"]').forEach(r => r.addEventListener('change', syncAiFields));
 
-  /* ---------------- Tema ---------------- */
+  $('#btnSettings').addEventListener('click', () => {
+    const s = Settings.get();
+    document.querySelector(`input[name="mode"][value="${s.mode}"]`).checked = true;
+    els.apiKey.value = s.apiKey;
+    els.model.value = s.model;
+    els.momLang.value = s.momLang;
+    syncAiFields();
+    els.settingsDialog.showModal();
+  });
+  $('#btnShowKey').addEventListener('click', e => {
+    const show = els.apiKey.type === 'password';
+    els.apiKey.type = show ? 'text' : 'password';
+    e.target.textContent = show ? 'Sembunyi' : 'Lihat';
+  });
+  $('#btnSaveSettings').addEventListener('click', () => {
+    const mode = document.querySelector('input[name="mode"]:checked').value;
+    const key = els.apiKey.value.trim();
+    if (mode === 'ai' && !key) { toast('Isi API key dulu untuk memakai Claude AI.', 'error'); els.apiKey.focus(); return; }
+    Settings.set({ mode, apiKey: key, model: els.model.value, momLang: els.momLang.value });
+    els.settingsDialog.close();
+    toast(mode === 'ai' ? 'Tersimpan. MoM berikutnya dibuat dengan Claude AI.' : 'Tersimpan. MoM dibuat otomatis tanpa AI.');
+  });
+
+  [els.historyDialog, els.settingsDialog].forEach(d => d.addEventListener('click', e => { if (e.target === d) d.close(); }));
+
   $('#btnTheme').addEventListener('click', () => {
     const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
     document.documentElement.dataset.theme = next;
     try { localStorage.setItem('mom.theme', next); } catch (e) {}
   });
 
-  /* ---------------- Rekaman ---------------- */
-  els.audioSource.addEventListener('change', () => {
-    els.mixHint.hidden = els.audioSource.value !== 'mix';
-  });
-
-  function updateRecUI() {
-    const st = Recorder.state();
-    els.recDot.className = 'dot ' + (st === 'recording' ? 'recording' : st === 'paused' ? 'paused' : '');
-    els.btnRecStart.disabled = st === 'recording' || st === 'stopping';
-    els.btnRecStart.textContent = st === 'paused' ? '▶ Lanjut' : '● Mulai';
-    els.btnRecPause.disabled = st !== 'recording';
-    els.btnRecStop.disabled = st !== 'recording' && st !== 'paused';
-    els.audioSource.disabled = st !== 'idle';
-    if (st === 'recording') els.recInfo.textContent = 'Sedang merekam… potongan rekaman disimpan otomatis tiap 5 detik.';
-    if (st === 'paused') els.recInfo.textContent = 'Rekaman dijeda.';
-  }
-
-  Recorder.on('state', updateRecUI);
-  Recorder.on('warning', msg => toast(msg, 'error'));
-  Recorder.on('stopped', ({ blob, ext }) => {
-    setLastAudio(blob, ext);
-    els.recTimer.textContent = '00:00:00';
-    updateRecUI();
-    toast('Rekaman selesai. Bisa diputar atau di-download.');
-  });
-
-  els.btnRecStart.addEventListener('click', async () => {
-    if (Recorder.state() === 'paused') { Recorder.resume(); return; }
-    if (lastAudio && !confirm('MoM ini sudah punya rekaman. Rekaman baru akan menggantikannya. Lanjutkan?')) return;
-    els.btnRecStart.disabled = true;
-    try {
-      saveNow(true); // pastikan MoM tercatat di riwayat supaya rekaman terhubung
-      await Recorder.start(els.audioSource.value, mom.id);
-      try { await AudioDB.deleteForMom(mom.id, Recorder.sessionId()); } catch (e) {}
-      setLastAudio(null);
-      els.recInfo.textContent = 'Sedang merekam… potongan rekaman disimpan otomatis tiap 5 detik.';
-    } catch (e) {
-      toast(e.message || 'Gagal mulai merekam.', 'error');
-    } finally {
-      updateRecUI();
-    }
-  });
-  els.btnRecPause.addEventListener('click', () => Recorder.pause());
-  els.btnRecStop.addEventListener('click', () => {
-    els.btnRecStop.disabled = true;
-    els.btnRecPause.disabled = true;
-    els.recInfo.textContent = 'Menyelesaikan rekaman…';
-    Recorder.stop();
-  });
-
-  // Timer + indikator level suara
-  const meterCtx = els.levelMeter.getContext('2d');
-  let smoothLevel = 0;
-  function tick() {
-    const st = Recorder.state();
-    if (st === 'recording' || st === 'paused') {
-      els.recTimer.textContent = Util.formatClock(Recorder.elapsed(), true);
-    }
-    smoothLevel = smoothLevel * 0.7 + Recorder.level() * 0.3;
-    const w = els.levelMeter.width, h = els.levelMeter.height;
-    meterCtx.clearRect(0, 0, w, h);
-    const bars = 14, gap = 2, bw = (w - gap * (bars - 1)) / bars;
-    const lit = Math.round(smoothLevel * bars);
-    const styles = getComputedStyle(document.documentElement);
-    for (let i = 0; i < bars; i++) {
-      meterCtx.fillStyle = i < lit
-        ? (i > bars * 0.8 ? styles.getPropertyValue('--danger') : styles.getPropertyValue('--ok'))
-        : styles.getPropertyValue('--border');
-      meterCtx.fillRect(i * (bw + gap), 0, bw, h);
-    }
-    requestAnimationFrame(tick);
-  }
-  requestAnimationFrame(tick);
-
-  els.btnAudio.addEventListener('click', () => {
-    if (!lastAudio) return;
-    Exporter.download(lastAudio.blob, Exporter.filename(mom, 'Rekaman', lastAudio.ext));
-  });
-
-  /* ---------------- Rekaman terputus (crash recovery) ---------------- */
+  /* ---------------- Pemulihan rekaman terputus ---------------- */
   async function checkRecovery() {
     try {
-      const sessions = await AudioDB.getSessions();
-      recovered = sessions.filter(s => s.status === 'recording');
-      for (const s of recovered) {
-        s.status = 'done';
-        s.recovered = true;
-        await AudioDB.putSession(s);
-      }
-      showRecoveryBanner();
-    } catch (e) { /* abaikan */ }
+      recovered = (await AudioDB.getSessions()).filter(s => s.status === 'recording');
+      for (const s of recovered) { s.status = 'done'; await AudioDB.putSession(s); }
+      showRecovery();
+    } catch (e) {}
   }
-
-  function showRecoveryBanner() {
+  function showRecovery() {
     if (!recovered.length) { els.recoveryBanner.hidden = true; return; }
     const s = recovered[0];
     const owner = Store.get(s.momId);
-    const name = owner && owner.title ? `"${owner.title}"` : 'tanpa judul';
-    els.recoveryText.textContent =
-      `Ditemukan rekaman yang terputus (MoM ${name}, mulai ${new Date(s.startedAt).toLocaleString('id-ID')}). Rekaman sudah dipulihkan.`;
+    els.recoveryText.textContent = `Ditemukan rekaman yang terputus (${owner && owner.agenda ? '"' + owner.agenda + '"' : 'tanpa agenda'}, ${new Date(s.startedAt).toLocaleString('id-ID')}). Rekaman berhasil dipulihkan.`;
     els.recoveryBanner.hidden = false;
   }
-
   $('#btnRecoverDownload').addEventListener('click', async () => {
     const s = recovered[0];
     if (!s) return;
-    const blob = await AudioDB.getBlob(s);
-    const owner = Store.get(s.momId) || { title: 'Pulih', datetime: new Date(s.startedAt).toISOString() };
-    Exporter.download(blob, Exporter.filename(owner, 'Rekaman', Recorder.extFor(s.mime)));
+    const owner = Store.get(s.momId) || { agenda: 'Pulih', datetime: new Date(s.startedAt).toISOString() };
+    Exporter.download(await AudioDB.getBlob(s), Exporter.filename(owner, 'Rekaman', Recorder.extFor(s.mime)));
   });
-  $('#btnRecoverDiscard').addEventListener('click', async () => {
-    const s = recovered.shift();
-    if (!s) return;
-    if (!confirm('Buang rekaman yang dipulihkan ini?')) { recovered.unshift(s); return; }
-    await AudioDB.deleteSession(s.id);
-    if (mom && s.momId === mom.id) await loadAudioForMom();
-    showRecoveryBanner();
-  });
-  $('#btnRecoverClose').addEventListener('click', () => {
-    recovered.shift();
-    showRecoveryBanner();
-  });
+  $('#btnRecoverClose').addEventListener('click', () => { recovered.shift(); showRecovery(); });
 
-  /* ---------------- Transkrip live ---------------- */
-  function transcriptClock() {
-    if (Recorder.state() !== 'idle') return Recorder.elapsed();
-    return txStart ? Date.now() - txStart : 0;
-  }
-
-  function setTranscriptStatus(msg, type = '') {
-    els.transcriptStatus.textContent = msg;
-    els.transcriptStatus.className = 'hint ' + type;
-  }
-
-  Transcriber.on('final', text => {
-    const ta = els.transcript;
-    const line = `[${Util.formatClock(transcriptClock())}] ${text}\n`;
-    const prefix = ta.value && !ta.value.endsWith('\n') ? '\n' : '';
-    const nearBottom = ta.scrollHeight - ta.scrollTop - ta.clientHeight < 40;
-    // setRangeText menjaga posisi kursor kalau pengguna sedang mengedit
-    ta.setRangeText(prefix + line, ta.value.length, ta.value.length, 'preserve');
-    if (nearBottom) ta.scrollTop = ta.scrollHeight;
-    mom.transcript = ta.value;
-    markDirty();
-  });
-  Transcriber.on('interim', text => { els.interim.textContent = text ? '… ' + text : ''; });
-  Transcriber.on('status', setTranscriptStatus);
-  Transcriber.on('stopped', () => { els.transcriptToggle.checked = false; els.interim.textContent = ''; });
-
-  els.transcriptToggle.addEventListener('change', () => {
-    if (els.transcriptToggle.checked) {
-      if (!Transcriber.supported()) {
-        els.transcriptToggle.checked = false;
-        toast('Transkrip live tidak didukung browser ini. Gunakan Chrome atau Edge.', 'error');
-        return;
-      }
-      txStart = Date.now();
-      Transcriber.start(els.transcriptLang.value);
-      setTranscriptStatus('Menyalakan transkripsi…');
-    } else {
-      Transcriber.stop();
-      els.interim.textContent = '';
-    }
-  });
-  els.transcriptLang.addEventListener('change', () => {
-    Transcriber.setLang(els.transcriptLang.value);
-    try { localStorage.setItem('mom.lang', els.transcriptLang.value); } catch (e) {}
-  });
-
-  $('#btnTranscriptToNotes').addEventListener('click', () => {
-    const t = mom.transcript.trim();
-    if (!t) return toast('Transkrip masih kosong.');
-    mom.notes = (mom.notes.trim() ? mom.notes.trimEnd() + '\n\n' : '') + '--- Transkrip ---\n' + t;
-    els.notes.value = mom.notes;
-    markDirty();
-    toast('Transkrip ditambahkan ke catatan diskusi.');
-  });
-
-  $('#btnCopyPrompt').addEventListener('click', async () => {
-    if (!mom.transcript.trim() && !mom.notes.trim()) return toast('Belum ada transkrip atau catatan untuk diringkas.');
-    const ok = await copyText(Exporter.summaryPrompt(mom));
-    toast(ok ? 'Prompt disalin. Paste ke Claude untuk dibuatkan MoM.' : 'Gagal menyalin ke clipboard.', ok ? '' : 'error');
-  });
-
-  $('#btnClearTranscript').addEventListener('click', () => {
-    if (!mom.transcript.trim()) return;
-    if (!confirm('Kosongkan seluruh transkrip?')) return;
-    mom.transcript = '';
-    els.transcript.value = '';
-    markDirty();
-  });
-
-  /* ---------------- Export ---------------- */
-  $('#btnDocx').addEventListener('click', async () => {
-    saveNow();
-    try {
-      const kind = await Exporter.exportDocx(mom);
-      toast(kind === 'fallback'
-        ? 'Library Word gagal dimuat (cek internet). File dibuat sebagai .doc yang tetap bisa dibuka Word.'
-        : 'File Word di-download.');
-    } catch (e) {
-      console.error(e);
-      toast('Gagal membuat file Word: ' + e.message, 'error');
-    }
-  });
-  $('#btnTxt').addEventListener('click', () => { saveNow(); Exporter.exportTxt(mom); toast('File Notepad di-download.'); });
-  $('#btnTranscriptTxt').addEventListener('click', () => {
-    if (!mom.transcript.trim()) return toast('Transkrip masih kosong.');
-    Exporter.exportTranscript(mom);
-  });
-
-  /* ---------------- Shortcut & pengaman ---------------- */
+  /* ---------------- Lain-lain ---------------- */
   document.addEventListener('keydown', e => {
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
-      e.preventDefault();
-      saveNow(true);
-      toast('Tersimpan.');
-    }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); saveNow(true); toast('Tersimpan.'); }
   });
-
   window.addEventListener('beforeunload', e => {
     if (dirty) saveNow();
-    if (Recorder.state() !== 'idle') {
-      e.preventDefault();
-      e.returnValue = '';
-    }
+    if (Recorder.state() !== 'idle') { e.preventDefault(); e.returnValue = ''; }
   });
 
-  /* ---------------- Cek dukungan browser ---------------- */
   function checkSupport() {
     const issues = [];
-    if (!window.isSecureContext) issues.push('Halaman tidak dibuka lewat HTTPS, jadi mikrofon tidak bisa diakses.');
+    if (!window.isSecureContext) issues.push('Halaman tidak dibuka lewat HTTPS, jadi mikrofon tidak bisa dipakai.');
     if (!Recorder.supported()) issues.push('Browser ini tidak mendukung perekaman audio.');
-    if (!Transcriber.supported()) issues.push('Transkrip live tidak didukung di browser ini — gunakan Chrome atau Edge.');
+    if (!Transcriber.supported()) issues.push('Transkrip live (dan MoM otomatis) butuh Chrome atau Edge.');
     if (!Recorder.tabAudioSupported()) {
       els.audioSource.querySelector('option[value="mix"]').disabled = true;
+      els.audioSource.value = 'mic';
     }
-    if (issues.length) {
-      els.browserWarning.textContent = '⚠ ' + issues.join(' ');
-      els.browserWarning.hidden = false;
-    }
+    if (issues.length) { els.banner.textContent = '⚠ ' + issues.join(' '); els.banner.hidden = false; }
   }
 
-  /* ---------------- Mulai ---------------- */
   async function init() {
+    const s = Settings.get();
+    els.speechLang.value = s.speechLang;
+    els.audioSource.value = s.audioSource;
     checkSupport();
-    try {
-      const lang = localStorage.getItem('mom.lang');
-      if (lang) els.transcriptLang.value = lang;
-    } catch (e) {}
+    els.mixHint.hidden = els.audioSource.value !== 'mix';
     await checkRecovery();
-    const current = Store.currentId() && Store.get(Store.currentId());
-    await openMom(current || Store.blank());
+    const cur = Store.currentId() && Store.get(Store.currentId());
+    await openMeeting(cur || Store.blank());
     updateRecUI();
   }
-
   init();
 })();
 
