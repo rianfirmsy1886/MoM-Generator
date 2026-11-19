@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Catatan MoM</title>
+  <meta name="description" content="Aplikasi sederhana untuk mencatat Minutes of Meeting, merekam percakapan, dan export ke Word / Notepad.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>">
+  <link rel="stylesheet" href="style.css">
+  <script>
+    // Terapkan tema sedini mungkin supaya tidak berkedip
+    (function () {
+      try {
+        var t = localStorage.getItem('mom.theme') ||
+          (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = t;
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="logo">📝</span><span>Catatan MoM</span></div>
+    <nav class="top-actions">
+      <button id="btnNew" class="btn ghost" type="button">+ MoM Baru</button>
+      <button id="btnHistory" class="btn ghost" type="button">Riwayat</button>
+      <button id="btnInfo" class="btn ghost" type="button">Info</button>
+      <button id="btnTheme" class="btn ghost icon" type="button" title="Ganti tema terang/gelap" aria-label="Ganti tema">🌓</button>
+    </nav>
+  </header>
+
+  <div id="browserWarning" class="banner warn" hidden></div>
+  <div id="recoveryBanner" class="banner info" hidden>
+    <span id="recoveryText"></span>
+    <span class="banner-actions">
+      <button id="btnRecoverDownload" class="btn small primary" type="button">Download</button>
+      <button id="btnRecoverDiscard" class="btn small" type="button">Buang</button>
+      <button id="btnRecoverClose" class="btn small ghost" type="button">Tutup</button>
+    </span>
+  </div>
+
+  <main class="layout">
+    <!-- ================= KOLOM FORM ================= -->
+    <section class="col form-col">
+      <div class="card">
+        <h2>Info Meeting</h2>
+        <label class="field">
+          <span>Judul meeting</span>
+          <input id="title" type="text" placeholder="mis. Weekly Review Sales Q4" autocomplete="off">
+        </label>
+        <div class="row2">
+          <label class="field">
+            <span>Tanggal &amp; jam</span>
+            <input id="datetime" type="datetime-local">
+          </label>
+          <label class="field">
+            <span>Platform</span>
+            <select id="platform">
+              <option>Zoom</option>
+              <option>Teams</option>
+              <option>Offline</option>
+              <option>Lainnya</option>
+            </select>
+          </label>
+        </div>
+        <div class="field">
+          <span>Peserta</span>
+          <div class="tags" id="tagsBox">
+            <input id="participantInput" type="text" placeholder="Ketik nama, tekan Enter" autocomplete="off">
+          </div>
+        </div>
+        <label class="field">
+          <span>Agenda</span>
+          <textarea id="agenda" rows="3" placeholder="Topik yang dibahas…"></textarea>
+        </label>
+      </div>
+
+      <div class="card">
+        <h2>Catatan Diskusi</h2>
+        <textarea id="notes" rows="12" placeholder="Poin-poin diskusi selama meeting…"></textarea>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Keputusan</h2>
+          <button id="btnAddDecision" class="btn small" type="button">+ Tambah</button>
+        </div>
+        <ol id="decisions" class="list"></ol>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Action Items</h2>
+          <button id="btnAddAction" class="btn small" type="button">+ Tambah</button>
+        </div>
+        <div class="table-wrap">
+          <table class="actions-table">
+            <thead>
+              <tr><th>Tugas</th><th>PIC</th><th>Deadline</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody id="actions"></tbody>
+          </table>
+        </div>
+        <datalist id="peopleList"></datalist>
+      </div>
+
+      <div class="card">
+        <h2>Open Issues / Follow-up</h2>
+        <textarea id="issues" rows="4" placeholder="Hal yang belum selesai atau perlu ditindaklanjuti…"></textarea>
+      </div>
+    </section>
+
+    <!-- ================= KOLOM SAMPING ================= -->
+    <aside class="col side-col">
+      <div class="card">
+        <h2>Rekaman</h2>
+        <label class="field">
+          <span>Sumber audio</span>
+          <select id="audioSource">
+            <option value="mic">Mikrofon saja (meeting offline)</option>
+            <option value="mix">Mikrofon + audio tab/sistem (Zoom/Teams)</option>
+          </select>
+        </label>
+        <p id="mixHint" class="hint" hidden>
+          Setelah klik <b>Mulai</b>, pilih tab/layar meeting lalu <b>centang "Share tab audio"</b>
+          (atau "Share system audio" untuk aplikasi desktop Zoom/Teams di Windows).
+        </p>
+        <div class="rec-status">
+          <span id="recDot" class="dot" aria-hidden="true"></span>
+          <span id="recTimer" class="timer">00:00:00</span>
+          <canvas id="levelMeter" width="140" height="14" aria-hidden="true"></canvas>
+        </div>
+        <div class="btn-row">
+          <button id="btnRecStart" class="btn primary" type="button">● Mulai</button>
+          <button id="btnRecPause" class="btn" type="button" disabled>❚❚ Jeda</button>
+          <button id="btnRecStop" class="btn danger" type="button" disabled>■ Stop</button>
+        </div>
+        <p id="recInfo" class="hint"></p>
+        <audio id="recPlayer" controls hidden></audio>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Transkrip Live</h2>
+          <label class="switch">
+            <input id="transcriptToggle" type="checkbox">
+            <span class="slider" aria-hidden="true"></span>
+            <span class="switch-label">Aktif</span>
+          </label>
+        </div>
+        <label class="field">
+          <span>Bahasa</span>
+          <select id="transcriptLang">
+            <option value="id-ID">Bahasa Indonesia</option>
+            <option value="en-US">English</option>
+          </select>
+        </label>
+        <p id="transcriptStatus" class="hint"></p>
+        <textarea id="transcript" rows="12" placeholder="Transkrip akan muncul di sini dengan timestamp. Bisa diedit manual."></textarea>
+        <div id="interim" class="interim" aria-live="polite"></div>
+        <div class="btn-row wrap">
+          <button id="btnTranscriptToNotes" class="btn small" type="button">Masukkan ke catatan diskusi</button>
+          <button id="btnCopyPrompt" class="btn small" type="button">Copy prompt ringkasan</button>
+          <button id="btnClearTranscript" class="btn small ghost" type="button">Kosongkan</button>
+        </div>
+        <details class="tips">
+          <summary>Tips transkripsi</summary>
+          <ul>
+            <li>Transkrip live hanya mendengar <b>mikrofon</b>. Untuk Zoom/Teams, pakai <b>speaker</b> (bukan headset) supaya suara peserta lain ikut tertangkap.</li>
+            <li>Satu bahasa per sesi. Untuk meeting campuran Indonesia–English, pilih <b>Bahasa Indonesia</b>.</li>
+            <li>Gunakan Chrome atau Edge di laptop dan pastikan internet stabil.</li>
+            <li>Hasil transkrip otomatis bisa salah dengar. Pakai tombol <b>Copy prompt ringkasan</b> lalu paste ke Claude untuk dirapikan jadi MoM.</li>
+          </ul>
+        </details>
+      </div>
+
+      <div class="card">
+        <h2>Export</h2>
+        <div class="export-grid">
+          <button id="btnDocx" class="btn primary" type="button">Word (.docx)</button>
+          <button id="btnTxt" class="btn" type="button">Notepad (.txt)</button>
+          <button id="btnTranscriptTxt" class="btn" type="button">Transkrip (.txt)</button>
+          <button id="btnAudio" class="btn" type="button" disabled>Rekaman (audio)</button>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="footer">
+    <span id="saveStatus">Draft baru</span>
+    <span class="muted">Data tersimpan di browser ini saja</span>
+  </footer>
+
+  <!-- ================= DIALOG RIWAYAT ================= -->
+  <dialog id="historyDialog">
+    <div class="dialog-head">
+      <h2>Riwayat MoM</h2>
+      <form method="dialog"><button class="btn ghost icon" aria-label="Tutup">✕</button></form>
+    </div>
+    <input id="historySearch" type="search" placeholder="Cari judul atau peserta…">
+    <ul id="historyList" class="history-list"></ul>
+    <p class="hint">"Duplikat" membuat MoM baru dengan judul, peserta, agenda, dan action item yang belum selesai, cocok untuk meeting rutin.</p>
+  </dialog>
+
+  <!-- ================= DIALOG INFO ================= -->
+  <dialog id="infoDialog">
+    <div class="dialog-head">
+      <h2>Info &amp; Privasi</h2>
+      <form method="dialog"><button class="btn ghost icon" aria-label="Tutup">✕</button></form>
+    </div>
+    <div class="info-body">
+      <h3>Cara pakai singkat</h3>
+      <ol>
+        <li>Isi info meeting (judul, peserta, agenda).</li>
+        <li>Pilih sumber audio, klik <b>Mulai</b> untuk merekam. Nyalakan <b>Transkrip Live</b> bila perlu.</li>
+        <li>Catat keputusan dan action items selama meeting.</li>
+        <li>Selesai meeting: klik <b>Stop</b>, lalu export ke Word, Notepad, transkrip, atau audio.</li>
+      </ol>
+      <h3>Keterbatasan</h3>
+      <ul>
+        <li><b>Transkrip live hanya mendengar mikrofon default</b>, bukan audio tab. Rekaman audio tetap bisa menangkap suara tab/sistem.</li>
+        <li>Transkripsi mengenali <b>satu bahasa per sesi</b>; istilah English di tengah kalimat Indonesia kadang salah tangkap.</li>
+        <li>Transkrip live hanya didukung Chrome / Edge (desktop paling stabil). Firefox tidak didukung.</li>
+        <li>Rekam audio tab/sistem hanya bisa di browser desktop. Di HP, gunakan mode "Mikrofon saja".</li>
+        <li>Mikrofon hanya bisa diakses lewat HTTPS (GitHub Pages sudah HTTPS).</li>
+      </ul>
+      <h3>Privasi</h3>
+      <ul>
+        <li>Semua catatan, transkrip, dan rekaman disimpan <b>di browser ini saja</b> (localStorage &amp; IndexedDB). Tidak ada server.</li>
+        <li><b>Pengecualian:</b> saat Transkrip Live aktif di Chrome/Edge, audio mikrofon diproses oleh layanan speech recognition milik Google/Microsoft untuk diubah jadi teks.</li>
+        <li>Menghapus data browser (clear site data) akan menghapus semua MoM. Export file penting secara berkala.</li>
+        <li>Minta izin peserta sebelum merekam meeting.</li>
+      </ul>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <!-- Library pembuat file Word -->
+  <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/recorder.js"></script>
+  <script src="js/transcript.js"></script>
+  <script src="js/export.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
