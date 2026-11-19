@@ -6,7 +6,414 @@
   <title>Catatan MoM</title>
   <meta name="description" content="Aplikasi sederhana untuk mencatat Minutes of Meeting, merekam percakapan, dan export ke Word / Notepad.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>">
-  <link rel="stylesheet" href="style.css">
+  <style>
+/* ================= TEMA ================= */
+:root {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --surface-2: #f0f2f5;
+  --text: #1c2330;
+  --muted: #667085;
+  --border: #dde1e7;
+  --primary: #2457d6;
+  --primary-text: #ffffff;
+  --primary-soft: #e6edfc;
+  --danger: #d23b3b;
+  --danger-soft: #fdeaea;
+  --ok: #1f9d55;
+  --warn-bg: #fff6e0;
+  --warn-text: #7a5300;
+  --info-bg: #e6f0ff;
+  --info-text: #1d3f8a;
+  --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 3px rgba(16, 24, 40, .08);
+  --radius: 10px;
+  --font: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace;
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --bg: #12151b;
+  --surface: #1a1f27;
+  --surface-2: #222833;
+  --text: #e6e9ef;
+  --muted: #98a2b3;
+  --border: #2f3744;
+  --primary: #5b8cff;
+  --primary-text: #0d1220;
+  --primary-soft: #1f2a44;
+  --danger: #ff6b6b;
+  --danger-soft: #3a1f22;
+  --ok: #4ade80;
+  --warn-bg: #3a2f12;
+  --warn-text: #f5d58a;
+  --info-bg: #1b2a45;
+  --info-text: #b8cdf8;
+  --shadow: none;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; }
+
+body {
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.5;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+h2 { font-size: 1rem; margin: 0 0 .75rem; font-weight: 600; }
+h3 { font-size: .95rem; margin: 1.1rem 0 .4rem; }
+
+/* ================= TOPBAR ================= */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .6rem 1.25rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.brand { display: flex; align-items: center; gap: .5rem; font-weight: 700; font-size: 1.05rem; }
+.logo { font-size: 1.3rem; }
+.top-actions { display: flex; gap: .25rem; flex-wrap: wrap; }
+
+/* ================= BANNER ================= */
+.banner {
+  margin: 1rem 1.25rem 0;
+  padding: .7rem 1rem;
+  border-radius: var(--radius);
+  font-size: .9rem;
+  display: flex;
+  gap: .75rem;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.banner[hidden] { display: none; }
+.banner.warn { background: var(--warn-bg); color: var(--warn-text); }
+.banner.info { background: var(--info-bg); color: var(--info-text); }
+.banner-actions { display: flex; gap: .4rem; }
+
+/* ================= LAYOUT ================= */
+.layout {
+  flex: 1;
+  width: 100%;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 1rem 1.25rem 1.5rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+.col { display: flex; flex-direction: column; gap: 1rem; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem;
+  box-shadow: var(--shadow);
+}
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .75rem; }
+.card-head h2 { margin: 0; }
+
+/* ================= FORM ================= */
+.field { display: flex; flex-direction: column; gap: .3rem; margin-bottom: .8rem; }
+.field > span { font-size: .82rem; font-weight: 600; color: var(--muted); }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+
+input[type="text"], input[type="search"], input[type="date"], input[type="datetime-local"],
+select, textarea {
+  width: 100%;
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: .5rem .65rem;
+  transition: border-color .15s, box-shadow .15s;
+}
+textarea { resize: vertical; min-height: 4rem; }
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+#transcript { font-family: var(--mono); font-size: .85rem; line-height: 1.55; }
+
+/* Tag peserta */
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem;
+  align-items: center;
+  padding: .35rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  min-height: 2.6rem;
+}
+.tags:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+.tags input { flex: 1; min-width: 10rem; border: none; padding: .25rem .35rem; box-shadow: none !important; }
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+  background: var(--primary-soft);
+  color: var(--text);
+  border-radius: 999px;
+  padding: .15rem .3rem .15rem .65rem;
+  font-size: .85rem;
+}
+.tag button {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0 .25rem;
+  border-radius: 50%;
+}
+.tag button:hover { color: var(--danger); }
+
+/* List keputusan */
+.list { margin: 0; padding-left: 1.4rem; display: flex; flex-direction: column; gap: .4rem; }
+.list li { padding-left: .2rem; }
+.list li.row { display: list-item; }
+.list .row-inner { display: flex; gap: .4rem; align-items: center; }
+.list li.empty, .empty-cell { color: var(--muted); font-size: .88rem; list-style: none; margin-left: -1.4rem; }
+
+/* Tabel action items */
+.table-wrap { overflow-x: auto; }
+.actions-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.actions-table th {
+  text-align: left;
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 0 .3rem .35rem;
+  border-bottom: 1px solid var(--border);
+}
+.actions-table td { padding: .3rem; vertical-align: top; }
+.actions-table td:nth-child(1) { width: 35%; }
+.actions-table td:nth-child(2) { width: 19%; }
+.actions-table td:nth-child(3) { width: 21%; }
+.actions-table td:nth-child(4) { width: 20%; }
+.actions-table td:nth-child(5) { width: 5%; }
+.actions-table input, .actions-table select { padding: .4rem .5rem; font-size: .88rem; }
+.empty-cell { margin: 0; padding: .6rem .3rem !important; }
+
+/* ================= TOMBOL ================= */
+.btn {
+  font: inherit;
+  font-size: .9rem;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 8px;
+  padding: .45rem .85rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .15s, border-color .15s, opacity .15s;
+}
+.btn:hover:not(:disabled) { background: var(--surface-2); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.primary { background: var(--primary); border-color: var(--primary); color: var(--primary-text); }
+.btn.primary:hover:not(:disabled) { filter: brightness(1.08); background: var(--primary); }
+.btn.danger { color: var(--danger); border-color: var(--danger); }
+.btn.danger:hover:not(:disabled) { background: var(--danger-soft); }
+.btn.ghost { border-color: transparent; background: transparent; }
+.btn.ghost:hover:not(:disabled) { background: var(--surface-2); }
+.btn.small { font-size: .82rem; padding: .3rem .65rem; }
+.btn.icon { padding: .35rem .6rem; }
+.btn-del {
+  flex: none;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: .35rem .45rem;
+  border-radius: 6px;
+}
+.btn-del:hover { color: var(--danger); background: var(--danger-soft); }
+
+.btn-row { display: flex; gap: .5rem; margin-top: .75rem; }
+.btn-row.wrap { flex-wrap: wrap; }
+.btn-row .btn { flex: 1; }
+.btn-row.wrap .btn { flex: 0 1 auto; }
+
+.export-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+
+/* ================= REKAMAN ================= */
+.rec-status {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .7rem .8rem;
+  background: var(--surface-2);
+  border-radius: 8px;
+}
+.dot { width: 12px; height: 12px; border-radius: 50%; background: var(--muted); opacity: .5; flex: none; }
+.dot.recording { background: var(--danger); opacity: 1; animation: pulse 1.2s infinite; }
+.dot.paused { background: #e3a008; opacity: 1; }
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(210, 59, 59, .55); }
+  70% { box-shadow: 0 0 0 8px rgba(210, 59, 59, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(210, 59, 59, 0); }
+}
+.timer { font-family: var(--mono); font-size: 1.35rem; font-weight: 600; letter-spacing: .02em; }
+#levelMeter { margin-left: auto; border-radius: 4px; background: var(--surface); }
+#recPlayer { width: 100%; margin-top: .5rem; }
+
+.hint { font-size: .82rem; color: var(--muted); margin: .4rem 0 0; }
+.hint:empty { display: none; }
+.hint.error { color: var(--danger); }
+.hint.ok { color: var(--ok); }
+.muted { color: var(--muted); }
+
+/* ================= TRANSKRIP ================= */
+.interim { min-height: 1.3rem; font-size: .85rem; color: var(--muted); font-style: italic; margin-top: .35rem; }
+.tips { margin-top: .75rem; font-size: .85rem; }
+.tips summary { cursor: pointer; color: var(--primary); font-weight: 500; }
+.tips ul { padding-left: 1.2rem; margin: .5rem 0 0; color: var(--muted); }
+.tips li { margin-bottom: .3rem; }
+
+/* Switch */
+.switch { display: inline-flex; align-items: center; gap: .45rem; cursor: pointer; font-size: .85rem; user-select: none; }
+.switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.slider { width: 36px; height: 20px; background: var(--border); border-radius: 999px; position: relative; transition: background .2s; }
+.slider::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform .2s;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .25);
+}
+.switch input:checked + .slider { background: var(--ok); }
+.switch input:checked + .slider::after { transform: translateX(16px); }
+.switch input:focus-visible + .slider { box-shadow: 0 0 0 3px var(--primary-soft); }
+
+/* ================= FOOTER ================= */
+.footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: .6rem 1.25rem;
+  font-size: .8rem;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+/* ================= DIALOG ================= */
+dialog {
+  width: min(640px, calc(100vw - 2rem));
+  max-height: calc(100vh - 3rem);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.25rem 1.25rem;
+  background: var(--surface);
+  color: var(--text);
+}
+dialog::backdrop { background: rgba(10, 14, 22, .5); }
+.dialog-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: .75rem; }
+.dialog-head h2 { margin: 0; font-size: 1.1rem; }
+.info-body { font-size: .9rem; }
+.info-body ul, .info-body ol { padding-left: 1.2rem; margin: 0; }
+.info-body li { margin-bottom: .3rem; }
+
+.history-list { list-style: none; margin: .75rem 0 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
+.history-list li {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .65rem .75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.history-list li.current { border-color: var(--primary); background: var(--primary-soft); }
+.history-list .meta { flex: 1; min-width: 0; }
+.history-list .meta strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.history-list .meta small { color: var(--muted); }
+.history-list .item-actions { display: flex; gap: .3rem; flex: none; }
+.history-list .empty { justify-content: center; color: var(--muted); border-style: dashed; }
+
+/* ================= TOAST ================= */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 1.5rem;
+  transform: translateX(-50%) translateY(200%);
+  opacity: 0;
+  visibility: hidden;
+  background: var(--text);
+  color: var(--bg);
+  padding: .65rem 1rem;
+  border-radius: 8px;
+  font-size: .9rem;
+  max-width: calc(100vw - 2rem);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .2);
+  transition: transform .25s ease, opacity .25s ease, visibility .25s;
+  z-index: 100;
+  pointer-events: none;
+}
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; visibility: visible; }
+.toast.error { background: var(--danger); color: #fff; }
+
+/* ================= RESPONSIF ================= */
+@media (max-width: 960px) {
+  .layout { grid-template-columns: 1fr; }
+  .side-col { order: -1; } /* di HP, kontrol rekaman tampil duluan */
+}
+
+@media (max-width: 640px) {
+  body { font-size: 14px; }
+  .topbar { padding: .5rem .75rem; }
+  .brand span:last-child { display: none; }
+  .layout { padding: .75rem; }
+  .banner { margin: .75rem .75rem 0; }
+  .row2 { grid-template-columns: 1fr; gap: 0; }
+
+  /* Tabel action items jadi kartu bertumpuk */
+  .actions-table thead { display: none; }
+  .actions-table, .actions-table tbody, .actions-table tr, .actions-table td { display: block; width: 100% !important; }
+  .actions-table tr { border: 1px solid var(--border); border-radius: 8px; padding: .4rem; margin-bottom: .5rem; position: relative; }
+  .actions-table td { padding: .25rem; }
+  .actions-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-size: .75rem;
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: .15rem;
+  }
+  .actions-table td:last-child { position: absolute; top: .2rem; right: .2rem; width: auto !important; }
+  .actions-table td:first-child { padding-right: 2.2rem; }
+}
+
+</style>
   <script>
     // Terapkan tema sedini mungkin supaya tidak berkedip
     (function () {
@@ -19,6 +426,16 @@
   </script>
 </head>
 <body>
+  <script>
+    // Tampilkan error di layar supaya mudah dilacak (terutama di HP)
+    window.addEventListener('error', function (e) {
+      var box = document.getElementById('browserWarning');
+      if (!box) return;
+      box.hidden = false;
+      box.textContent = '⚠ Aplikasi mengalami error: ' + (e.message || 'file gagal dimuat') +
+        '. Coba refresh halaman. Kalau masih muncul, kirim screenshot pesan ini.';
+    });
+  </script>
   <header class="topbar">
     <div class="brand"><span class="logo">📝</span><span>Catatan MoM</span></div>
     <nav class="top-actions">
@@ -238,10 +655,1469 @@
 
   <!-- Library pembuat file Word -->
   <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
-  <script src="js/storage.js"></script>
-  <script src="js/recorder.js"></script>
-  <script src="js/transcript.js"></script>
-  <script src="js/export.js"></script>
-  <script src="js/app.js"></script>
+  <script>
+/* ---- js/storage.js ---- */
+/* =========================================================
+   storage.js — penyimpanan MoM (localStorage) dan audio (IndexedDB)
+   ========================================================= */
+
+const Util = {
+  uid() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  },
+  /** Waktu lokal sekarang dalam format input datetime-local (YYYY-MM-DDTHH:mm) */
+  nowLocal() {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0, 16);
+  },
+  todayISO() {
+    return Util.nowLocal().slice(0, 10);
+  },
+  /** "Kamis, 19 November 2026 · 13:00" */
+  formatDateTime(value) {
+    if (!value) return '-';
+    const d = new Date(value);
+    if (isNaN(d)) return value;
+    const date = d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const time = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
+    return value.length > 10 ? `${date} · ${time}` : date;
+  },
+  /** "20 Nov 2026" dari YYYY-MM-DD */
+  formatDate(value) {
+    if (!value) return '';
+    const d = new Date(value + 'T00:00');
+    if (isNaN(d)) return value;
+    return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+  },
+  /** ms → "mm:ss" atau "h:mm:ss" */
+  formatClock(ms, alwaysHours = false) {
+    const total = Math.max(0, Math.floor(ms / 1000));
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    const pad = n => String(n).padStart(2, '0');
+    return (h || alwaysHours) ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+  }
+};
+
+/* ---------------- MoM di localStorage ---------------- */
+const Store = (() => {
+  const KEY_ITEMS = 'mom.items';
+  const KEY_CURRENT = 'mom.currentId';
+
+  function blank() {
+    return {
+      id: Util.uid(),
+      title: '',
+      datetime: Util.nowLocal(),
+      platform: 'Zoom',
+      participants: [],
+      agenda: '',
+      notes: '',
+      decisions: [],
+      actions: [],
+      issues: '',
+      transcript: '',
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    };
+  }
+
+  function readAll() {
+    try {
+      return JSON.parse(localStorage.getItem(KEY_ITEMS)) || {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function writeAll(items) {
+    localStorage.setItem(KEY_ITEMS, JSON.stringify(items));
+  }
+
+  function list() {
+    return Object.values(readAll()).sort((a, b) => b.updatedAt - a.updatedAt);
+  }
+
+  function get(id) {
+    return readAll()[id] || null;
+  }
+
+  function save(mom) {
+    const items = readAll();
+    mom.updatedAt = Date.now();
+    items[mom.id] = JSON.parse(JSON.stringify(mom));
+    writeAll(items);
+    setCurrent(mom.id);
+  }
+
+  function remove(id) {
+    const items = readAll();
+    delete items[id];
+    writeAll(items);
+    if (currentId() === id) localStorage.removeItem(KEY_CURRENT);
+  }
+
+  function currentId() {
+    return localStorage.getItem(KEY_CURRENT);
+  }
+
+  function setCurrent(id) {
+    localStorage.setItem(KEY_CURRENT, id);
+  }
+
+  function isEmpty(m) {
+    return !m.title.trim() && !m.agenda.trim() && !m.notes.trim() && !m.issues.trim() &&
+      !m.transcript.trim() && m.participants.length === 0 &&
+      m.decisions.every(d => !d.trim()) && m.actions.every(a => !(a.task || '').trim());
+  }
+
+  /** Lengkapi field yang hilang (untuk data versi lama) */
+  function normalize(m) {
+    return Object.assign(blank(), m);
+  }
+
+  /** Salinan untuk meeting rutin: bawa judul, peserta, agenda, action item yang belum selesai */
+  function duplicate(m) {
+    const copy = blank();
+    copy.title = m.title ? `${m.title} (lanjutan)` : '';
+    copy.platform = m.platform;
+    copy.participants = [...m.participants];
+    copy.agenda = m.agenda;
+    copy.actions = m.actions.filter(a => a.status !== 'Selesai').map(a => ({ ...a }));
+    copy.issues = m.issues;
+    return copy;
+  }
+
+  return { blank, list, get, save, remove, currentId, setCurrent, isEmpty, normalize, duplicate };
+})();
+
+/* ---------------- Audio di IndexedDB ----------------
+   Potongan rekaman disimpan tiap beberapa detik supaya tidak hilang
+   kalau browser crash / tab tertutup. */
+const AudioDB = (() => {
+  let dbPromise = null;
+  const req = r => new Promise((res, rej) => {
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+
+  function open() {
+    if (dbPromise) return dbPromise;
+    dbPromise = new Promise((res, rej) => {
+      if (!('indexedDB' in window)) return rej(new Error('IndexedDB tidak tersedia'));
+      const r = indexedDB.open('mom-audio', 1);
+      r.onupgradeneeded = () => {
+        const db = r.result;
+        db.createObjectStore('sessions', { keyPath: 'id' });
+        const chunks = db.createObjectStore('chunks', { autoIncrement: true });
+        chunks.createIndex('session', 'session');
+      };
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+    return dbPromise;
+  }
+
+  async function putSession(session) {
+    const db = await open();
+    return req(db.transaction('sessions', 'readwrite').objectStore('sessions').put(session));
+  }
+
+  async function getSessions() {
+    const db = await open();
+    return req(db.transaction('sessions').objectStore('sessions').getAll());
+  }
+
+  async function addChunk(sessionId, blob) {
+    const db = await open();
+    return req(db.transaction('chunks', 'readwrite').objectStore('chunks').add({ session: sessionId, blob }));
+  }
+
+  async function getBlob(session) {
+    const db = await open();
+    const rows = await req(db.transaction('chunks').objectStore('chunks').index('session').getAll(session.id));
+    return new Blob(rows.map(r => r.blob), { type: session.mime || 'audio/webm' });
+  }
+
+  async function deleteSession(id) {
+    const db = await open();
+    const tx = db.transaction(['sessions', 'chunks'], 'readwrite');
+    tx.objectStore('sessions').delete(id);
+    const cursorReq = tx.objectStore('chunks').index('session').openCursor(IDBKeyRange.only(id));
+    cursorReq.onsuccess = () => {
+      const c = cursorReq.result;
+      if (c) { c.delete(); c.continue(); }
+    };
+    return new Promise((res, rej) => {
+      tx.oncomplete = () => res();
+      tx.onerror = () => rej(tx.error);
+    });
+  }
+
+  /** Rekaman terbaru yang sudah selesai untuk satu MoM */
+  async function latestForMom(momId) {
+    const sessions = (await getSessions()).filter(s => s.momId === momId && s.status === 'done');
+    sessions.sort((a, b) => b.startedAt - a.startedAt);
+    return sessions[0] || null;
+  }
+
+  async function deleteForMom(momId, exceptId = null) {
+    const sessions = (await getSessions()).filter(s => s.momId === momId && s.id !== exceptId);
+    for (const s of sessions) await deleteSession(s.id);
+  }
+
+  return { putSession, getSessions, addChunk, getBlob, deleteSession, latestForMom, deleteForMom };
+})();
+
+</script>
+  <script>
+/* ---- js/recorder.js ---- */
+/* =========================================================
+   recorder.js — rekam audio mikrofon, atau mikrofon + audio tab/sistem
+   ========================================================= */
+
+const Recorder = (() => {
+  let mediaRecorder = null;
+  let streams = [];
+  let audioCtx = null;
+  let analyser = null;
+  let levelBuf = null;
+  let session = null;
+  let memChunks = [];
+  let saveChain = Promise.resolve();
+  let state = 'idle'; // idle | recording | paused
+  let startTs = 0;
+  let accumulated = 0;
+  const listeners = {};
+
+  function on(evt, fn) { (listeners[evt] = listeners[evt] || []).push(fn); }
+  function emit(evt, data) { (listeners[evt] || []).forEach(fn => fn(data)); }
+
+  function supported() {
+    return !!(window.MediaRecorder && navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  }
+
+  function tabAudioSupported() {
+    return !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
+  }
+
+  function pickMime() {
+    const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/aac', 'audio/ogg;codecs=opus'];
+    if (typeof MediaRecorder.isTypeSupported !== 'function') return '';
+    return candidates.find(m => MediaRecorder.isTypeSupported(m)) || '';
+  }
+
+  function extFor(mime) {
+    if (!mime) return 'webm';
+    if (mime.includes('mp4') || mime.includes('aac')) return 'm4a';
+    if (mime.includes('ogg')) return 'ogg';
+    return 'webm';
+  }
+
+  function cleanup() {
+    streams.forEach(s => s.getTracks().forEach(t => t.stop()));
+    streams = [];
+    if (audioCtx) { audioCtx.close().catch(() => {}); audioCtx = null; }
+    analyser = null;
+  }
+
+  async function start(source, momId) {
+    if (state !== 'idle') return;
+    if (!supported()) throw new Error('Browser ini tidak mendukung perekaman audio.');
+
+    // Buat AudioContext SEBELUM await pertama, selagi masih dalam "user gesture".
+    // iPhone/Safari membuat AudioContext dalam keadaan suspended kalau dibuat belakangan.
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    audioCtx = Ctx ? new Ctx() : null;
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+
+    let mic;
+    try {
+      mic = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+      });
+    } catch (e) {
+      cleanup();
+      throw new Error('Izin mikrofon ditolak atau mikrofon tidak ditemukan. Cek izin mikrofon di pengaturan browser.');
+    }
+    streams = [mic];
+
+    // Indikator level suara (tidak memengaruhi rekaman)
+    if (audioCtx) {
+      try {
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 512;
+        levelBuf = new Uint8Array(analyser.fftSize);
+        audioCtx.createMediaStreamSource(mic).connect(analyser);
+        // Safari hanya memproses node yang tersambung ke output; gain 0 = tidak terdengar
+        const silent = audioCtx.createGain();
+        silent.gain.value = 0;
+        analyser.connect(silent);
+        silent.connect(audioCtx.destination);
+      } catch (e) { analyser = null; }
+    }
+
+    // Mode mikrofon saja: rekam stream mikrofon langsung (paling stabil, termasuk di iPhone)
+    let recordStream = mic;
+
+    if (source === 'mix') {
+      if (!tabAudioSupported() || !audioCtx) {
+        cleanup();
+        throw new Error('Rekam audio tab/sistem tidak didukung di browser ini. Gunakan "Mikrofon saja".');
+      }
+      let display;
+      try {
+        // Chrome mewajibkan video: true; video tidak ikut direkam.
+        display = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+      } catch (e) {
+        cleanup();
+        throw new Error('Berbagi tab/layar dibatalkan.');
+      }
+      streams.push(display);
+      const audioTracks = display.getAudioTracks();
+      if (!audioTracks.length) {
+        cleanup();
+        throw new Error('Tidak ada audio dari tab/layar. Ulangi dan centang "Share tab audio" / "Share system audio".');
+      }
+      if (audioCtx.state === 'suspended') await audioCtx.resume().catch(() => {});
+      const dest = audioCtx.createMediaStreamDestination();
+      audioCtx.createMediaStreamSource(mic).connect(dest);
+      const tabSource = audioCtx.createMediaStreamSource(new MediaStream(audioTracks));
+      tabSource.connect(dest);
+      if (analyser) tabSource.connect(analyser);
+      recordStream = dest.stream;
+      audioTracks[0].addEventListener('ended', () => {
+        if (state !== 'idle') emit('warning', 'Berbagi audio tab dihentikan. Rekaman lanjut dengan mikrofon saja.');
+      });
+    }
+
+    const mime = pickMime();
+    try {
+      mediaRecorder = new MediaRecorder(recordStream, mime ? { mimeType: mime, audioBitsPerSecond: 64000 } : undefined);
+    } catch (e) {
+      mediaRecorder = new MediaRecorder(recordStream);
+    }
+
+    session = {
+      id: Util.uid(),
+      momId,
+      mime: mediaRecorder.mimeType || mime || 'audio/webm',
+      status: 'recording',
+      startedAt: Date.now()
+    };
+    memChunks = [];
+    saveChain = Promise.resolve();
+    try { await AudioDB.putSession(session); } catch (e) { console.warn('IndexedDB:', e); }
+
+    mediaRecorder.ondataavailable = e => {
+      if (!e.data || !e.data.size) return;
+      memChunks.push(e.data);
+      const sid = session.id;
+      saveChain = saveChain.then(() => AudioDB.addChunk(sid, e.data)).catch(err => console.warn('Simpan potongan gagal:', err));
+    };
+
+    mediaRecorder.onstop = async () => {
+      const finished = session;
+      const blob = new Blob(memChunks, { type: finished.mime });
+      await saveChain;
+      finished.status = 'done';
+      finished.duration = elapsed();
+      try { await AudioDB.putSession(finished); } catch (e) { /* abaikan */ }
+      cleanup();
+      state = 'idle';
+      accumulated = 0;
+      emit('state', state);
+      emit('stopped', { blob, session: finished, ext: extFor(finished.mime) });
+    };
+
+    mediaRecorder.start(5000); // potongan tiap 5 detik
+    state = 'recording';
+    startTs = Date.now();
+    accumulated = 0;
+    emit('state', state);
+  }
+
+  function pause() {
+    if (state !== 'recording') return;
+    mediaRecorder.pause();
+    accumulated += Date.now() - startTs;
+    state = 'paused';
+    emit('state', state);
+  }
+
+  function resume() {
+    if (state !== 'paused') return;
+    mediaRecorder.resume();
+    startTs = Date.now();
+    state = 'recording';
+    emit('state', state);
+  }
+
+  function stop() {
+    if (state === 'idle' || !mediaRecorder) return;
+    if (state === 'recording') accumulated += Date.now() - startTs;
+    startTs = Date.now();
+    const prev = state;
+    state = 'stopping';
+    if (prev === 'paused') { try { mediaRecorder.resume(); } catch (e) {} }
+    mediaRecorder.stop();
+  }
+
+  function elapsed() {
+    return accumulated + (state === 'recording' ? Date.now() - startTs : 0);
+  }
+
+  /** Level suara 0..1 untuk indikator */
+  function level() {
+    if (!analyser || state !== 'recording') return 0;
+    analyser.getByteTimeDomainData(levelBuf);
+    let sum = 0;
+    for (let i = 0; i < levelBuf.length; i++) {
+      const v = (levelBuf[i] - 128) / 128;
+      sum += v * v;
+    }
+    return Math.min(1, Math.sqrt(sum / levelBuf.length) * 3);
+  }
+
+  return {
+    on, start, pause, resume, stop, elapsed, level, supported, tabAudioSupported, extFor,
+    state: () => state,
+    sessionId: () => (session ? session.id : null)
+  };
+})();
+
+</script>
+  <script>
+/* ---- js/transcript.js ---- */
+/* =========================================================
+   transcript.js — transkripsi live dengan Web Speech API
+   ========================================================= */
+
+const Transcriber = (() => {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let rec = null;
+  let wanted = false;
+  let lang = 'id-ID';
+  let restartTimer = null;
+  let errorStreak = 0;
+  const handlers = { final: () => {}, interim: () => {}, status: () => {}, stopped: () => {} };
+
+  function supported() { return !!SR; }
+
+  function on(evt, fn) { handlers[evt] = fn; }
+
+  function langName(l) { return l === 'id-ID' ? 'Bahasa Indonesia' : 'English'; }
+
+  function create() {
+    const r = new SR();
+    r.continuous = true;
+    r.interimResults = true;
+    r.lang = lang;
+    r.maxAlternatives = 1;
+
+    r.onstart = () => {
+      if (r !== rec) return;
+      handlers.status(`Mendengarkan… (${langName(lang)})`, 'ok');
+    };
+
+    r.onresult = e => {
+      if (r !== rec) return;
+      errorStreak = 0;
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const res = e.results[i];
+        if (res.isFinal) {
+          const text = res[0].transcript.trim();
+          if (text) handlers.final(text);
+        } else {
+          interim += res[0].transcript;
+        }
+      }
+      handlers.interim(interim);
+    };
+
+    r.onerror = e => {
+      if (r !== rec) return;
+      switch (e.error) {
+        case 'no-speech':
+        case 'aborted':
+          return; // normal, akan restart otomatis
+        case 'not-allowed':
+        case 'service-not-allowed':
+          wanted = false;
+          handlers.status('Izin mikrofon / layanan transkripsi ditolak browser.', 'error');
+          handlers.stopped();
+          return;
+        case 'audio-capture':
+          wanted = false;
+          handlers.status('Mikrofon tidak ditemukan.', 'error');
+          handlers.stopped();
+          return;
+        case 'network':
+          errorStreak++;
+          handlers.status('Koneksi ke layanan transkripsi bermasalah — butuh internet. Mencoba lagi…', 'error');
+          break;
+        default:
+          errorStreak++;
+          handlers.status('Transkripsi error: ' + e.error, 'error');
+      }
+      if (errorStreak >= 6) {
+        wanted = false;
+        handlers.status('Transkripsi dihentikan karena error berulang. Coba nyalakan lagi.', 'error');
+        handlers.stopped();
+      }
+    };
+
+    r.onend = () => {
+      if (r !== rec) return;
+      handlers.interim('');
+      if (wanted) {
+        // Chrome memutus sesi setelah diam / ~60 detik — sambung lagi otomatis
+        clearTimeout(restartTimer);
+        restartTimer = setTimeout(() => {
+          if (!wanted || r !== rec) return;
+          try { r.start(); } catch (err) { /* sudah berjalan */ }
+        }, errorStreak ? 1000 * errorStreak : 250);
+      } else {
+        handlers.status('Transkripsi mati.', '');
+      }
+    };
+    return r;
+  }
+
+  function start(l) {
+    if (!SR) return false;
+    if (l) lang = l;
+    wanted = true;
+    errorStreak = 0;
+    const old = rec;
+    rec = create();
+    if (old) { try { old.abort(); } catch (e) {} }
+    try { rec.start(); } catch (e) { /* abaikan */ }
+    return true;
+  }
+
+  function stop() {
+    wanted = false;
+    clearTimeout(restartTimer);
+    if (rec) { try { rec.stop(); } catch (e) {} }
+  }
+
+  function setLang(l) {
+    lang = l;
+    if (wanted) start(l);
+  }
+
+  return { supported, on, start, stop, setLang, isRunning: () => wanted };
+})();
+
+</script>
+  <script>
+/* ---- js/export.js ---- */
+/* =========================================================
+   export.js — export ke Word (.docx), Notepad (.txt), transkrip, prompt AI
+   ========================================================= */
+
+const Exporter = (() => {
+  const dash = v => (v && String(v).trim()) ? String(v).trim() : '-';
+  const cleanList = arr => arr.map(s => (s || '').trim()).filter(Boolean);
+  const cleanActions = arr => arr.filter(a => (a.task || '').trim() || (a.pic || '').trim());
+
+  function safeName(s) {
+    const n = (s || '').replace(/[\\/:*?"<>|#%{}~&]+/g, '').trim().replace(/\s+/g, '_').slice(0, 60);
+    return n || 'Meeting';
+  }
+
+  function filename(mom, prefix, ext) {
+    const date = (mom.datetime || Util.todayISO()).slice(0, 10);
+    return `${prefix}_${safeName(mom.title)}_${date}.${ext}`;
+  }
+
+  function download(blob, name) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+
+  /* ---------------- Notepad (.txt) ---------------- */
+  function toText(mom) {
+    const L = [];
+    const section = title => { L.push('', title.toUpperCase(), '-'.repeat(title.length)); };
+    L.push('MINUTES OF MEETING', '==================', '');
+    L.push(`Judul     : ${dash(mom.title)}`);
+    L.push(`Tanggal   : ${Util.formatDateTime(mom.datetime)}`);
+    L.push(`Platform  : ${dash(mom.platform)}`);
+    L.push(`Peserta   : ${mom.participants.length ? mom.participants.join(', ') : '-'}`);
+
+    section('Agenda');
+    L.push(dash(mom.agenda));
+
+    section('Catatan Diskusi');
+    L.push(dash(mom.notes));
+
+    section('Keputusan');
+    const decisions = cleanList(mom.decisions);
+    if (decisions.length) decisions.forEach((d, i) => L.push(`${i + 1}. ${d}`));
+    else L.push('-');
+
+    section('Action Items');
+    const actions = cleanActions(mom.actions);
+    if (actions.length) {
+      actions.forEach((a, i) => {
+        L.push(`${i + 1}. ${dash(a.task)}`);
+        L.push(`   PIC: ${dash(a.pic)} | Deadline: ${dash(Util.formatDate(a.deadline))} | Status: ${dash(a.status)}`);
+      });
+    } else L.push('-');
+
+    section('Open Issues / Follow-up');
+    L.push(dash(mom.issues));
+
+    L.push('', '', `Dibuat dengan Catatan MoM · ${new Date().toLocaleString('id-ID')}`);
+    // CRLF supaya rapi di Notepad Windows; BOM supaya UTF-8 terbaca benar
+    return '﻿' + L.join('\r\n').replace(/\r?\n/g, '\r\n');
+  }
+
+  function exportTxt(mom) {
+    download(new Blob([toText(mom)], { type: 'text/plain;charset=utf-8' }), filename(mom, 'MoM', 'txt'));
+  }
+
+  function exportTranscript(mom) {
+    const head = [
+      `TRANSKRIP — ${dash(mom.title)}`,
+      `Tanggal  : ${Util.formatDateTime(mom.datetime)}`,
+      `Platform : ${dash(mom.platform)}`,
+      `Peserta  : ${mom.participants.length ? mom.participants.join(', ') : '-'}`,
+      '',
+      ''
+    ].join('\n');
+    const text = '﻿' + (head + mom.transcript).replace(/\r?\n/g, '\r\n');
+    download(new Blob([text], { type: 'text/plain;charset=utf-8' }), filename(mom, 'Transkrip', 'txt'));
+  }
+
+  /* ---------------- Word (.docx) ---------------- */
+  async function exportDocx(mom) {
+    if (!window.docx) {
+      // Cadangan bila library gagal dimuat (offline / CDN diblokir)
+      exportDocFallback(mom);
+      return 'fallback';
+    }
+    const {
+      Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell,
+      WidthType, ShadingType, AlignmentType, BorderStyle
+    } = window.docx;
+
+    const ACCENT = '2457D6';
+    const SHADE = 'E8EEFB';
+    const border = { style: BorderStyle.SINGLE, size: 4, color: 'C9D1DE' };
+    const borders = { top: border, bottom: border, left: border, right: border };
+
+    const textParas = (text, opts = {}) => {
+      const lines = dash(text).split(/\r?\n/);
+      return lines.map(line => new Paragraph({
+        spacing: { after: 80 },
+        children: [new TextRun({ text: line, ...opts })]
+      }));
+    };
+
+    const heading = text => new Paragraph({
+      heading: HeadingLevel.HEADING_2,
+      spacing: { before: 280, after: 120 },
+      children: [new TextRun({ text, bold: true, color: ACCENT, size: 26 })]
+    });
+
+    const cell = (text, width, { bold = false, shade = false } = {}) => new TableCell({
+      width: { size: width, type: WidthType.DXA },
+      borders,
+      shading: shade ? { type: ShadingType.CLEAR, color: 'auto', fill: SHADE } : undefined,
+      margins: { top: 60, bottom: 60, left: 100, right: 100 },
+      children: dash(text).split(/\r?\n/).map(line =>
+        new Paragraph({ children: [new TextRun({ text: line, bold, size: 21 })] }))
+    });
+
+    // Lebar area tulis A4 dengan margin 2,54 cm ≈ 9026 DXA
+    const infoCols = [2200, 6826];
+    const infoRows = [
+      ['Judul', dash(mom.title)],
+      ['Tanggal & jam', Util.formatDateTime(mom.datetime)],
+      ['Platform', dash(mom.platform)],
+      ['Peserta', mom.participants.length ? mom.participants.join(', ') : '-']
+    ];
+    const infoTable = new Table({
+      width: { size: 9026, type: WidthType.DXA },
+      columnWidths: infoCols,
+      rows: infoRows.map(([k, v]) => new TableRow({
+        children: [cell(k, infoCols[0], { bold: true, shade: true }), cell(v, infoCols[1])]
+      }))
+    });
+
+    const children = [
+      new Paragraph({
+        alignment: AlignmentType.LEFT,
+        spacing: { after: 60 },
+        children: [new TextRun({ text: 'MINUTES OF MEETING', bold: true, size: 36, color: ACCENT })]
+      }),
+      new Paragraph({
+        spacing: { after: 240 },
+        children: [new TextRun({ text: dash(mom.title), size: 26, color: '555555' })]
+      }),
+      infoTable,
+      heading('Agenda'),
+      ...textParas(mom.agenda),
+      heading('Catatan Diskusi'),
+      ...textParas(mom.notes),
+      heading('Keputusan')
+    ];
+
+    const decisions = cleanList(mom.decisions);
+    if (decisions.length) {
+      decisions.forEach((d, i) => children.push(new Paragraph({
+        spacing: { after: 80 },
+        indent: { left: 360, hanging: 360 },
+        children: [new TextRun({ text: `${i + 1}.\t${d}` })]
+      })));
+    } else children.push(...textParas('-'));
+
+    children.push(heading('Action Items'));
+    const actions = cleanActions(mom.actions);
+    if (actions.length) {
+      const cols = [500, 3900, 1650, 1450, 1526];
+      const header = new TableRow({
+        tableHeader: true,
+        children: ['No', 'Tugas', 'PIC', 'Deadline', 'Status'].map((h, i) => cell(h, cols[i], { bold: true, shade: true }))
+      });
+      const rows = actions.map((a, i) => new TableRow({
+        children: [
+          cell(String(i + 1), cols[0]),
+          cell(a.task, cols[1]),
+          cell(a.pic, cols[2]),
+          cell(Util.formatDate(a.deadline), cols[3]),
+          cell(a.status, cols[4])
+        ]
+      }));
+      children.push(new Table({
+        width: { size: 9026, type: WidthType.DXA },
+        columnWidths: cols,
+        rows: [header, ...rows]
+      }));
+    } else children.push(...textParas('-'));
+
+    children.push(heading('Open Issues / Follow-up'), ...textParas(mom.issues));
+
+    const doc = new Document({
+      creator: 'Catatan MoM',
+      title: `MoM - ${dash(mom.title)}`,
+      styles: { default: { document: { run: { font: 'Calibri', size: 22 } } } },
+      sections: [{
+        properties: {
+          page: {
+            size: { width: 11906, height: 16838 },
+            margin: { top: 1440, bottom: 1440, left: 1440, right: 1440 }
+          }
+        },
+        children
+      }]
+    });
+
+    const blob = await Packer.toBlob(doc);
+    download(blob, filename(mom, 'MoM', 'docx'));
+    return 'docx';
+  }
+
+  /** Cadangan: HTML yang dibuka Word sebagai dokumen (.doc) */
+  function exportDocFallback(mom) {
+    const esc = s => dash(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\r?\n/g, '<br>');
+    const decisions = cleanList(mom.decisions);
+    const actions = cleanActions(mom.actions);
+    const html = `<html><head><meta charset="utf-8"><title>MoM</title>
+<style>body{font-family:Calibri,Arial;font-size:11pt}h1{color:#2457D6}h2{color:#2457D6;font-size:13pt;margin-top:18pt}
+table{border-collapse:collapse;width:100%}td,th{border:1px solid #C9D1DE;padding:4pt 6pt;vertical-align:top}th,.k{background:#E8EEFB;font-weight:bold}</style></head><body>
+<h1>MINUTES OF MEETING</h1>
+<table><tr><td class="k">Judul</td><td>${esc(mom.title)}</td></tr>
+<tr><td class="k">Tanggal &amp; jam</td><td>${esc(Util.formatDateTime(mom.datetime))}</td></tr>
+<tr><td class="k">Platform</td><td>${esc(mom.platform)}</td></tr>
+<tr><td class="k">Peserta</td><td>${esc(mom.participants.join(', '))}</td></tr></table>
+<h2>Agenda</h2><p>${esc(mom.agenda)}</p>
+<h2>Catatan Diskusi</h2><p>${esc(mom.notes)}</p>
+<h2>Keputusan</h2>${decisions.length ? '<ol>' + decisions.map(d => `<li>${esc(d)}</li>`).join('') + '</ol>' : '<p>-</p>'}
+<h2>Action Items</h2>${actions.length ? '<table><tr><th>No</th><th>Tugas</th><th>PIC</th><th>Deadline</th><th>Status</th></tr>' +
+      actions.map((a, i) => `<tr><td>${i + 1}</td><td>${esc(a.task)}</td><td>${esc(a.pic)}</td><td>${esc(Util.formatDate(a.deadline))}</td><td>${esc(a.status)}</td></tr>`).join('') +
+      '</table>' : '<p>-</p>'}
+<h2>Open Issues / Follow-up</h2><p>${esc(mom.issues)}</p></body></html>`;
+    download(new Blob(['﻿' + html], { type: 'application/msword' }), filename(mom, 'MoM', 'doc'));
+  }
+
+  /* ---------------- Prompt ringkasan untuk AI ---------------- */
+  function summaryPrompt(mom) {
+    return `Kamu adalah notulis profesional. Dari transkrip meeting di bawah, buatkan Minutes of Meeting (MoM) yang terstruktur dalam Bahasa Indonesia. Pertahankan istilah bisnis dalam English bila memang dipakai di meeting.
+
+Info meeting:
+- Judul: ${dash(mom.title)}
+- Tanggal: ${Util.formatDateTime(mom.datetime)}
+- Platform: ${dash(mom.platform)}
+- Peserta: ${mom.participants.length ? mom.participants.join(', ') : '-'}
+- Agenda: ${dash(mom.agenda)}
+
+Format output:
+1. Ringkasan (3–5 kalimat)
+2. Poin diskusi, dikelompokkan per topik
+3. Keputusan
+4. Action items dalam tabel: Tugas | PIC | Deadline. Jika PIC atau deadline tidak disebut, tulis "TBD".
+5. Open issues / follow-up
+
+Catatan penting:
+- Transkrip dibuat otomatis dan bisa salah dengar, terutama istilah English dan nama orang. Perbaiki berdasarkan konteks.
+- Jangan menambahkan informasi yang tidak ada di transkrip atau catatan.
+
+Catatan manual saya selama meeting:
+"""
+${dash(mom.notes)}
+"""
+
+Transkrip:
+"""
+${dash(mom.transcript)}
+"""`;
+  }
+
+  return { exportTxt, exportTranscript, exportDocx, summaryPrompt, download, filename };
+})();
+
+</script>
+  <script>
+/* ---- js/app.js ---- */
+/* =========================================================
+   app.js — menghubungkan UI dengan storage, recorder, transkrip, export
+   ========================================================= */
+
+(() => {
+  const $ = sel => document.querySelector(sel);
+  const STATUSES = ['Belum mulai', 'Proses', 'Selesai'];
+
+  let mom = null;          // MoM yang sedang dibuka
+  let dirty = false;
+  let saveTimer = null;
+  let lastAudio = null;    // { blob, ext, url }
+  let txStart = null;      // jam mulai transkrip (kalau tidak sedang merekam)
+  let recovered = [];      // sesi rekaman terputus yang ditemukan saat load
+
+  const els = {
+    title: $('#title'), datetime: $('#datetime'), platform: $('#platform'),
+    agenda: $('#agenda'), notes: $('#notes'), issues: $('#issues'), transcript: $('#transcript'),
+    tagsBox: $('#tagsBox'), participantInput: $('#participantInput'), peopleList: $('#peopleList'),
+    decisions: $('#decisions'), actions: $('#actions'),
+    saveStatus: $('#saveStatus'), toast: $('#toast'),
+    audioSource: $('#audioSource'), mixHint: $('#mixHint'),
+    recDot: $('#recDot'), recTimer: $('#recTimer'), levelMeter: $('#levelMeter'), recInfo: $('#recInfo'),
+    recPlayer: $('#recPlayer'),
+    btnRecStart: $('#btnRecStart'), btnRecPause: $('#btnRecPause'), btnRecStop: $('#btnRecStop'),
+    transcriptToggle: $('#transcriptToggle'), transcriptLang: $('#transcriptLang'),
+    transcriptStatus: $('#transcriptStatus'), interim: $('#interim'),
+    btnAudio: $('#btnAudio'),
+    historyDialog: $('#historyDialog'), historyList: $('#historyList'), historySearch: $('#historySearch'),
+    infoDialog: $('#infoDialog'),
+    browserWarning: $('#browserWarning'),
+    recoveryBanner: $('#recoveryBanner'), recoveryText: $('#recoveryText')
+  };
+
+  /* ---------------- Helper UI ---------------- */
+  let toastTimer;
+  function toast(msg, type = '') {
+    els.toast.textContent = msg;
+    els.toast.className = 'toast show ' + type;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { els.toast.className = 'toast ' + type; }, type === 'error' ? 5000 : 2800);
+  }
+
+  function el(tag, props = {}, ...children) {
+    const node = document.createElement(tag);
+    for (const [k, v] of Object.entries(props)) {
+      if (k === 'dataset') Object.assign(node.dataset, v);
+      else if (k.startsWith('aria-') || k === 'list' || k === 'data-label') node.setAttribute(k, v);
+      else node[k] = v;
+    }
+    children.flat().forEach(c => node.append(c));
+    return node;
+  }
+
+  function delButton(label, onClick) {
+    return el('button', { type: 'button', className: 'btn-del', textContent: '×', title: label, 'aria-label': label, onclick: onClick });
+  }
+
+  async function copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (e) {
+      const ta = el('textarea', { value: text });
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.append(ta);
+      ta.select();
+      const ok = document.execCommand('copy');
+      ta.remove();
+      return ok;
+    }
+  }
+
+  /* ---------------- Simpan otomatis ---------------- */
+  function markDirty() {
+    dirty = true;
+    els.saveStatus.textContent = 'Menyimpan…';
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => saveNow(), 1200);
+  }
+
+  function saveNow(force = false) {
+    clearTimeout(saveTimer);
+    if (!force && Store.isEmpty(mom) && !Store.get(mom.id)) {
+      dirty = false;
+      els.saveStatus.textContent = 'Draft baru';
+      return;
+    }
+    try {
+      Store.save(mom);
+      dirty = false;
+      els.saveStatus.textContent = 'Tersimpan otomatis · ' + new Date().toLocaleTimeString('id-ID');
+    } catch (e) {
+      els.saveStatus.textContent = 'Gagal menyimpan — penyimpanan browser mungkin penuh';
+      toast('Gagal menyimpan. Export file Anda sekarang.', 'error');
+    }
+  }
+  setInterval(() => { if (dirty) saveNow(); }, 5000);
+
+  /* ---------------- Form sederhana ---------------- */
+  const simpleFields = ['title', 'datetime', 'platform', 'agenda', 'notes', 'issues', 'transcript'];
+  simpleFields.forEach(f => {
+    ['input', 'change'].forEach(evt => els[f].addEventListener(evt, () => {
+      if (mom[f] === els[f].value) return;
+      mom[f] = els[f].value;
+      markDirty();
+    }));
+  });
+
+  function loadIntoForm() {
+    simpleFields.forEach(f => { els[f].value = mom[f] || ''; });
+    renderTags();
+    renderDecisions();
+    renderActions();
+    updatePeopleList();
+    els.interim.textContent = '';
+  }
+
+  /* ---------------- Peserta (tag) ---------------- */
+  function addParticipants(raw) {
+    const names = raw.split(/[,;\n]/).map(s => s.trim()).filter(Boolean);
+    let added = false;
+    names.forEach(n => {
+      if (!mom.participants.some(p => p.toLowerCase() === n.toLowerCase())) {
+        mom.participants.push(n);
+        added = true;
+      }
+    });
+    if (added) { renderTags(); updatePeopleList(); markDirty(); }
+  }
+
+  function renderTags() {
+    els.tagsBox.querySelectorAll('.tag').forEach(n => n.remove());
+    mom.participants.forEach((p, i) => {
+      const tag = el('span', { className: 'tag' }, p,
+        el('button', {
+          type: 'button', textContent: '×', 'aria-label': 'Hapus ' + p,
+          onclick: () => { mom.participants.splice(i, 1); renderTags(); updatePeopleList(); markDirty(); }
+        }));
+      els.tagsBox.insertBefore(tag, els.participantInput);
+    });
+  }
+
+  function updatePeopleList() {
+    els.peopleList.innerHTML = '';
+    mom.participants.forEach(p => els.peopleList.append(el('option', { value: p })));
+  }
+
+  els.participantInput.addEventListener('keydown', e => {
+    const input = els.participantInput;
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addParticipants(input.value);
+      input.value = '';
+    } else if (e.key === 'Backspace' && !input.value && mom.participants.length) {
+      mom.participants.pop();
+      renderTags(); updatePeopleList(); markDirty();
+    }
+  });
+  els.participantInput.addEventListener('blur', () => {
+    if (els.participantInput.value.trim()) {
+      addParticipants(els.participantInput.value);
+      els.participantInput.value = '';
+    }
+  });
+  els.participantInput.addEventListener('paste', e => {
+    const text = (e.clipboardData || window.clipboardData).getData('text');
+    if (/[,;\n]/.test(text)) {
+      e.preventDefault();
+      addParticipants(text);
+    }
+  });
+  els.tagsBox.addEventListener('click', e => { if (e.target === els.tagsBox) els.participantInput.focus(); });
+
+  /* ---------------- Keputusan ---------------- */
+  function renderDecisions() {
+    els.decisions.innerHTML = '';
+    if (!mom.decisions.length) {
+      els.decisions.append(el('li', { className: 'empty', textContent: 'Belum ada keputusan.' }));
+      return;
+    }
+    mom.decisions.forEach((d, i) => {
+      const input = el('input', { type: 'text', value: d, placeholder: 'Tulis keputusan…' });
+      input.addEventListener('input', () => { mom.decisions[i] = input.value; markDirty(); });
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); addDecision(i + 1); }
+      });
+      const del = delButton('Hapus keputusan', () => { mom.decisions.splice(i, 1); renderDecisions(); markDirty(); });
+      els.decisions.append(el('li', { className: 'row' }, el('div', { className: 'row-inner' }, input, del)));
+    });
+  }
+
+  function addDecision(at = mom.decisions.length) {
+    mom.decisions.splice(at, 0, '');
+    renderDecisions();
+    const input = els.decisions.children[at].querySelector('input');
+    if (input) input.focus();
+    markDirty();
+  }
+  $('#btnAddDecision').addEventListener('click', () => addDecision());
+
+  /* ---------------- Action items ---------------- */
+  function renderActions() {
+    els.actions.innerHTML = '';
+    if (!mom.actions.length) {
+      els.actions.append(el('tr', {}, el('td', { colSpan: 5, className: 'empty-cell', textContent: 'Belum ada action item.' })));
+      return;
+    }
+    mom.actions.forEach((a, i) => {
+      const bind = (node, key) => {
+        node.addEventListener('input', () => { mom.actions[i][key] = node.value; markDirty(); });
+        node.addEventListener('change', () => { mom.actions[i][key] = node.value; markDirty(); });
+        return node;
+      };
+      const task = bind(el('input', { type: 'text', value: a.task || '', placeholder: 'Apa yang harus dikerjakan' }), 'task');
+      const pic = bind(el('input', { type: 'text', value: a.pic || '', placeholder: 'Nama', list: 'peopleList' }), 'pic');
+      const deadline = bind(el('input', { type: 'date', value: a.deadline || '' }), 'deadline');
+      const status = bind(el('select', {}, STATUSES.map(s => el('option', { value: s, textContent: s }))), 'status');
+      status.value = a.status || STATUSES[0];
+      const del = delButton('Hapus action item', () => { mom.actions.splice(i, 1); renderActions(); markDirty(); });
+      els.actions.append(el('tr', {},
+        el('td', { 'data-label': 'Tugas' }, task),
+        el('td', { 'data-label': 'PIC' }, pic),
+        el('td', { 'data-label': 'Deadline' }, deadline),
+        el('td', { 'data-label': 'Status' }, status),
+        el('td', {}, del)
+      ));
+    });
+  }
+
+  $('#btnAddAction').addEventListener('click', () => {
+    mom.actions.push({ task: '', pic: '', deadline: '', status: STATUSES[0] });
+    renderActions();
+    const rows = els.actions.querySelectorAll('tr');
+    rows[rows.length - 1].querySelector('input').focus();
+    markDirty();
+  });
+
+  /* ---------------- Buka / ganti MoM ---------------- */
+  async function openMom(m) {
+    if (Transcriber.isRunning()) {
+      Transcriber.stop();
+      els.transcriptToggle.checked = false;
+    }
+    mom = Store.normalize(m);
+    Store.setCurrent(mom.id);
+    loadIntoForm();
+    els.saveStatus.textContent = Store.get(mom.id) ? 'Tersimpan' : 'Draft baru';
+    await loadAudioForMom();
+  }
+
+  function setLastAudio(blob, ext) {
+    if (lastAudio && lastAudio.url) URL.revokeObjectURL(lastAudio.url);
+    if (!blob || !blob.size) {
+      lastAudio = null;
+      els.recPlayer.hidden = true;
+      els.recPlayer.removeAttribute('src');
+      els.btnAudio.disabled = true;
+      els.recInfo.textContent = '';
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    lastAudio = { blob, ext, url };
+    els.recPlayer.src = url;
+    els.recPlayer.hidden = false;
+    els.btnAudio.disabled = false;
+    els.recInfo.textContent = `Rekaman tersimpan (${(blob.size / 1048576).toFixed(1)} MB).`;
+  }
+
+  async function loadAudioForMom() {
+    setLastAudio(null);
+    try {
+      const s = await AudioDB.latestForMom(mom.id);
+      if (s) setLastAudio(await AudioDB.getBlob(s), Recorder.extFor(s.mime));
+    } catch (e) { /* IndexedDB tidak tersedia */ }
+  }
+
+  function blockIfRecording() {
+    if (Recorder.state() !== 'idle') {
+      toast('Hentikan rekaman dulu sebelum pindah MoM.', 'error');
+      return true;
+    }
+    return false;
+  }
+
+  $('#btnNew').addEventListener('click', async () => {
+    if (blockIfRecording()) return;
+    if (dirty) saveNow();
+    await openMom(Store.blank());
+    els.title.focus();
+    toast('MoM baru dibuat.');
+  });
+
+  /* ---------------- Riwayat ---------------- */
+  function renderHistory() {
+    const q = els.historySearch.value.trim().toLowerCase();
+    const items = Store.list().filter(m =>
+      !q || (m.title || '').toLowerCase().includes(q) || (m.participants || []).join(' ').toLowerCase().includes(q));
+    els.historyList.innerHTML = '';
+    if (!items.length) {
+      els.historyList.append(el('li', { className: 'empty', textContent: q ? 'Tidak ada yang cocok.' : 'Belum ada MoM tersimpan.' }));
+      return;
+    }
+    items.forEach(m => {
+      const isCurrent = mom && m.id === mom.id;
+      const meta = el('div', { className: 'meta' },
+        el('strong', { textContent: m.title || '(Tanpa judul)' }),
+        el('small', { textContent: `${Util.formatDateTime(m.datetime)} · ${m.platform}${isCurrent ? ' · sedang dibuka' : ''}` }));
+      const actions = el('div', { className: 'item-actions' },
+        el('button', {
+          type: 'button', className: 'btn small', textContent: 'Buka', disabled: isCurrent,
+          onclick: async () => {
+            if (blockIfRecording()) return;
+            if (dirty) saveNow();
+            await openMom(Store.get(m.id));
+            els.historyDialog.close();
+          }
+        }),
+        el('button', {
+          type: 'button', className: 'btn small', textContent: 'Duplikat',
+          onclick: async () => {
+            if (blockIfRecording()) return;
+            if (dirty) saveNow();
+            await openMom(Store.duplicate(Store.normalize(Store.get(m.id))));
+            saveNow(true);
+            els.historyDialog.close();
+            toast('Duplikat dibuat sebagai MoM baru.');
+          }
+        }),
+        el('button', {
+          type: 'button', className: 'btn small danger', textContent: 'Hapus',
+          onclick: async () => {
+            if (isCurrent && Recorder.state() !== 'idle') return toast('Sedang merekam MoM ini.', 'error');
+            if (!confirm(`Hapus "${m.title || '(Tanpa judul)'}" beserta rekamannya? Tindakan ini tidak bisa dibatalkan.`)) return;
+            Store.remove(m.id);
+            try { await AudioDB.deleteForMom(m.id); } catch (e) {}
+            if (isCurrent) await openMom(Store.blank());
+            renderHistory();
+            toast('MoM dihapus.');
+          }
+        }));
+      els.historyList.append(el('li', { className: isCurrent ? 'current' : '' }, meta, actions));
+    });
+  }
+
+  $('#btnHistory').addEventListener('click', () => {
+    if (dirty) saveNow();
+    els.historySearch.value = '';
+    renderHistory();
+    els.historyDialog.showModal();
+  });
+  els.historySearch.addEventListener('input', renderHistory);
+  $('#btnInfo').addEventListener('click', () => els.infoDialog.showModal());
+
+  // Klik backdrop untuk menutup dialog
+  [els.historyDialog, els.infoDialog].forEach(d => d.addEventListener('click', e => {
+    if (e.target === d) d.close();
+  }));
+
+  /* ---------------- Tema ---------------- */
+  $('#btnTheme').addEventListener('click', () => {
+    const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem('mom.theme', next); } catch (e) {}
+  });
+
+  /* ---------------- Rekaman ---------------- */
+  els.audioSource.addEventListener('change', () => {
+    els.mixHint.hidden = els.audioSource.value !== 'mix';
+  });
+
+  function updateRecUI() {
+    const st = Recorder.state();
+    els.recDot.className = 'dot ' + (st === 'recording' ? 'recording' : st === 'paused' ? 'paused' : '');
+    els.btnRecStart.disabled = st === 'recording' || st === 'stopping';
+    els.btnRecStart.textContent = st === 'paused' ? '▶ Lanjut' : '● Mulai';
+    els.btnRecPause.disabled = st !== 'recording';
+    els.btnRecStop.disabled = st !== 'recording' && st !== 'paused';
+    els.audioSource.disabled = st !== 'idle';
+    if (st === 'recording') els.recInfo.textContent = 'Sedang merekam… potongan rekaman disimpan otomatis tiap 5 detik.';
+    if (st === 'paused') els.recInfo.textContent = 'Rekaman dijeda.';
+  }
+
+  Recorder.on('state', updateRecUI);
+  Recorder.on('warning', msg => toast(msg, 'error'));
+  Recorder.on('stopped', ({ blob, ext }) => {
+    setLastAudio(blob, ext);
+    els.recTimer.textContent = '00:00:00';
+    updateRecUI();
+    toast('Rekaman selesai. Bisa diputar atau di-download.');
+  });
+
+  els.btnRecStart.addEventListener('click', async () => {
+    if (Recorder.state() === 'paused') { Recorder.resume(); return; }
+    if (lastAudio && !confirm('MoM ini sudah punya rekaman. Rekaman baru akan menggantikannya. Lanjutkan?')) return;
+    els.btnRecStart.disabled = true;
+    try {
+      saveNow(true); // pastikan MoM tercatat di riwayat supaya rekaman terhubung
+      await Recorder.start(els.audioSource.value, mom.id);
+      try { await AudioDB.deleteForMom(mom.id, Recorder.sessionId()); } catch (e) {}
+      setLastAudio(null);
+      els.recInfo.textContent = 'Sedang merekam… potongan rekaman disimpan otomatis tiap 5 detik.';
+    } catch (e) {
+      toast(e.message || 'Gagal mulai merekam.', 'error');
+    } finally {
+      updateRecUI();
+    }
+  });
+  els.btnRecPause.addEventListener('click', () => Recorder.pause());
+  els.btnRecStop.addEventListener('click', () => {
+    els.btnRecStop.disabled = true;
+    els.btnRecPause.disabled = true;
+    els.recInfo.textContent = 'Menyelesaikan rekaman…';
+    Recorder.stop();
+  });
+
+  // Timer + indikator level suara
+  const meterCtx = els.levelMeter.getContext('2d');
+  let smoothLevel = 0;
+  function tick() {
+    const st = Recorder.state();
+    if (st === 'recording' || st === 'paused') {
+      els.recTimer.textContent = Util.formatClock(Recorder.elapsed(), true);
+    }
+    smoothLevel = smoothLevel * 0.7 + Recorder.level() * 0.3;
+    const w = els.levelMeter.width, h = els.levelMeter.height;
+    meterCtx.clearRect(0, 0, w, h);
+    const bars = 14, gap = 2, bw = (w - gap * (bars - 1)) / bars;
+    const lit = Math.round(smoothLevel * bars);
+    const styles = getComputedStyle(document.documentElement);
+    for (let i = 0; i < bars; i++) {
+      meterCtx.fillStyle = i < lit
+        ? (i > bars * 0.8 ? styles.getPropertyValue('--danger') : styles.getPropertyValue('--ok'))
+        : styles.getPropertyValue('--border');
+      meterCtx.fillRect(i * (bw + gap), 0, bw, h);
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  els.btnAudio.addEventListener('click', () => {
+    if (!lastAudio) return;
+    Exporter.download(lastAudio.blob, Exporter.filename(mom, 'Rekaman', lastAudio.ext));
+  });
+
+  /* ---------------- Rekaman terputus (crash recovery) ---------------- */
+  async function checkRecovery() {
+    try {
+      const sessions = await AudioDB.getSessions();
+      recovered = sessions.filter(s => s.status === 'recording');
+      for (const s of recovered) {
+        s.status = 'done';
+        s.recovered = true;
+        await AudioDB.putSession(s);
+      }
+      showRecoveryBanner();
+    } catch (e) { /* abaikan */ }
+  }
+
+  function showRecoveryBanner() {
+    if (!recovered.length) { els.recoveryBanner.hidden = true; return; }
+    const s = recovered[0];
+    const owner = Store.get(s.momId);
+    const name = owner && owner.title ? `"${owner.title}"` : 'tanpa judul';
+    els.recoveryText.textContent =
+      `Ditemukan rekaman yang terputus (MoM ${name}, mulai ${new Date(s.startedAt).toLocaleString('id-ID')}). Rekaman sudah dipulihkan.`;
+    els.recoveryBanner.hidden = false;
+  }
+
+  $('#btnRecoverDownload').addEventListener('click', async () => {
+    const s = recovered[0];
+    if (!s) return;
+    const blob = await AudioDB.getBlob(s);
+    const owner = Store.get(s.momId) || { title: 'Pulih', datetime: new Date(s.startedAt).toISOString() };
+    Exporter.download(blob, Exporter.filename(owner, 'Rekaman', Recorder.extFor(s.mime)));
+  });
+  $('#btnRecoverDiscard').addEventListener('click', async () => {
+    const s = recovered.shift();
+    if (!s) return;
+    if (!confirm('Buang rekaman yang dipulihkan ini?')) { recovered.unshift(s); return; }
+    await AudioDB.deleteSession(s.id);
+    if (mom && s.momId === mom.id) await loadAudioForMom();
+    showRecoveryBanner();
+  });
+  $('#btnRecoverClose').addEventListener('click', () => {
+    recovered.shift();
+    showRecoveryBanner();
+  });
+
+  /* ---------------- Transkrip live ---------------- */
+  function transcriptClock() {
+    if (Recorder.state() !== 'idle') return Recorder.elapsed();
+    return txStart ? Date.now() - txStart : 0;
+  }
+
+  function setTranscriptStatus(msg, type = '') {
+    els.transcriptStatus.textContent = msg;
+    els.transcriptStatus.className = 'hint ' + type;
+  }
+
+  Transcriber.on('final', text => {
+    const ta = els.transcript;
+    const line = `[${Util.formatClock(transcriptClock())}] ${text}\n`;
+    const prefix = ta.value && !ta.value.endsWith('\n') ? '\n' : '';
+    const nearBottom = ta.scrollHeight - ta.scrollTop - ta.clientHeight < 40;
+    // setRangeText menjaga posisi kursor kalau pengguna sedang mengedit
+    ta.setRangeText(prefix + line, ta.value.length, ta.value.length, 'preserve');
+    if (nearBottom) ta.scrollTop = ta.scrollHeight;
+    mom.transcript = ta.value;
+    markDirty();
+  });
+  Transcriber.on('interim', text => { els.interim.textContent = text ? '… ' + text : ''; });
+  Transcriber.on('status', setTranscriptStatus);
+  Transcriber.on('stopped', () => { els.transcriptToggle.checked = false; els.interim.textContent = ''; });
+
+  els.transcriptToggle.addEventListener('change', () => {
+    if (els.transcriptToggle.checked) {
+      if (!Transcriber.supported()) {
+        els.transcriptToggle.checked = false;
+        toast('Transkrip live tidak didukung browser ini. Gunakan Chrome atau Edge.', 'error');
+        return;
+      }
+      txStart = Date.now();
+      Transcriber.start(els.transcriptLang.value);
+      setTranscriptStatus('Menyalakan transkripsi…');
+    } else {
+      Transcriber.stop();
+      els.interim.textContent = '';
+    }
+  });
+  els.transcriptLang.addEventListener('change', () => {
+    Transcriber.setLang(els.transcriptLang.value);
+    try { localStorage.setItem('mom.lang', els.transcriptLang.value); } catch (e) {}
+  });
+
+  $('#btnTranscriptToNotes').addEventListener('click', () => {
+    const t = mom.transcript.trim();
+    if (!t) return toast('Transkrip masih kosong.');
+    mom.notes = (mom.notes.trim() ? mom.notes.trimEnd() + '\n\n' : '') + '--- Transkrip ---\n' + t;
+    els.notes.value = mom.notes;
+    markDirty();
+    toast('Transkrip ditambahkan ke catatan diskusi.');
+  });
+
+  $('#btnCopyPrompt').addEventListener('click', async () => {
+    if (!mom.transcript.trim() && !mom.notes.trim()) return toast('Belum ada transkrip atau catatan untuk diringkas.');
+    const ok = await copyText(Exporter.summaryPrompt(mom));
+    toast(ok ? 'Prompt disalin. Paste ke Claude untuk dibuatkan MoM.' : 'Gagal menyalin ke clipboard.', ok ? '' : 'error');
+  });
+
+  $('#btnClearTranscript').addEventListener('click', () => {
+    if (!mom.transcript.trim()) return;
+    if (!confirm('Kosongkan seluruh transkrip?')) return;
+    mom.transcript = '';
+    els.transcript.value = '';
+    markDirty();
+  });
+
+  /* ---------------- Export ---------------- */
+  $('#btnDocx').addEventListener('click', async () => {
+    saveNow();
+    try {
+      const kind = await Exporter.exportDocx(mom);
+      toast(kind === 'fallback'
+        ? 'Library Word gagal dimuat (cek internet). File dibuat sebagai .doc yang tetap bisa dibuka Word.'
+        : 'File Word di-download.');
+    } catch (e) {
+      console.error(e);
+      toast('Gagal membuat file Word: ' + e.message, 'error');
+    }
+  });
+  $('#btnTxt').addEventListener('click', () => { saveNow(); Exporter.exportTxt(mom); toast('File Notepad di-download.'); });
+  $('#btnTranscriptTxt').addEventListener('click', () => {
+    if (!mom.transcript.trim()) return toast('Transkrip masih kosong.');
+    Exporter.exportTranscript(mom);
+  });
+
+  /* ---------------- Shortcut & pengaman ---------------- */
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+      e.preventDefault();
+      saveNow(true);
+      toast('Tersimpan.');
+    }
+  });
+
+  window.addEventListener('beforeunload', e => {
+    if (dirty) saveNow();
+    if (Recorder.state() !== 'idle') {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
+
+  /* ---------------- Cek dukungan browser ---------------- */
+  function checkSupport() {
+    const issues = [];
+    if (!window.isSecureContext) issues.push('Halaman tidak dibuka lewat HTTPS, jadi mikrofon tidak bisa diakses.');
+    if (!Recorder.supported()) issues.push('Browser ini tidak mendukung perekaman audio.');
+    if (!Transcriber.supported()) issues.push('Transkrip live tidak didukung di browser ini — gunakan Chrome atau Edge.');
+    if (!Recorder.tabAudioSupported()) {
+      els.audioSource.querySelector('option[value="mix"]').disabled = true;
+    }
+    if (issues.length) {
+      els.browserWarning.textContent = '⚠ ' + issues.join(' ');
+      els.browserWarning.hidden = false;
+    }
+  }
+
+  /* ---------------- Mulai ---------------- */
+  async function init() {
+    checkSupport();
+    try {
+      const lang = localStorage.getItem('mom.lang');
+      if (lang) els.transcriptLang.value = lang;
+    } catch (e) {}
+    await checkRecovery();
+    const current = Store.currentId() && Store.get(Store.currentId());
+    await openMom(current || Store.blank());
+    updateRecUI();
+  }
+
+  init();
+})();
+
+</script>
 </body>
 </html>
